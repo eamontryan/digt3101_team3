@@ -1,0 +1,26 @@
+,,,,,,,,,,,,
+,AGILE PRODUCT BACKLOG TEMPLATE,,,,,,,,,,,
+,Team ,3,,,,,,,,,,
+,Project,Real Estate Management System (REMS),,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,TASK ID,TASK NAME,SPRINT #,ASSIGNED TO,START,FINISH,STORY,SPRINT READY,PRIORITY,STATUS,STORY POINTS,ASSIGNED TO SPRINT
+,US-01,Create Software Requirements Specification (SRS),Sprint 0,Team,01/11/2025,23/11/2025,"As a project manager, I want a complete SRS so that all stakeholders have a clear understanding of functional and non-functional requirements.",Yes,High,Done,5,Yes
+,US-02,Develop System Architecture & UML Design,Sprint 1,Team,24/11/2025,21/02/2026,"As a system architect, I want to design UML diagrams, system architecture, and ERD so the development team has a clear blueprint for implementation.",Yes,High,In-Progress,8,Yes
+,US-03,Implement Role-Based Access Control (RBAC),Sprint 2,Team,03/02/2026,20/02/2026,"As an Admin, I want to assign roles (Tenant, Agent, Admin) so that only authorized users can access sensitive features.",Yes,High,Not Started,5,Yes
+,US-17,"Schedule Viewing Appointments
+",Sprint 2,Team,04/02/2026,21/02/2026,"As a tenant, I would like to schedule viewing appointments with a leasing agent to view a property.
+",No,High,In-Progress,6,Yes
+,US-04,Digital Lease Agreement Generation & Electronic Signing,Sprint 3,Team,21/02/2026,05/03/2026,"As a Tenant, I want the system to generate digital lease agreements automatically that I can electronically sign so I don’t need physical paperwork.",Yes,High,Not Started,8,Yes
+,US-05,Automated Late Payment & Overdue Alerts,Sprint 3,Team,06/03/2026,15/03/2026,"As an Admin, I want automated alerts sent to tenants & staff for overdue payments so that reminders don’t have to be manually sent.",Yes,Medium,Not Started,3,Yes
+,US-06,Bulk Discount and Multi-Unit Billing Logic,Sprint 3,Team,07/03/2026,16/03/2026,"As a Tenant leasing multiple units, I want the system to automatically apply discount logic so that my billing reflects accurate total charges.",Yes,Medium,Not Started,5,Yes
+,US-07,Multi-Mall Property Management,Sprint 3,Team,10/03/2026,17/03/2026,"As an Admin, I want to manage multiple mall properties so each mall has its own inventory of store units.",No,Medium,Not Started,4,Yes
+,US-10,Lease Tracking & Automatic Renewal,Sprint 3,Team,18/03/2026,21/03/2026,"As an Admin, I want the system to track lease start/end dates and alert users before expiry so renewals are not missed.",Yes,Medium,Not Started,4,Yes
+,US-08,Mobile-Friendly & Responsive UI,Sprint 4,Team,17/03/2026,25/03/2026,"As a Tenant, I want to access system features from mobile devices so that I can manage store leases and requests from anywhere.",No,Medium,Not Started,5,Yes
+,US-09,System Shall Recover from Partial Failures,Sprint 4,Team,18/03/2026,26/03/2026,"As a system user, I want every transaction (booking, billing, lease signing) to be completed fully or rolled back so that no data gets corrupted.",No,High,Not Started,5,Yes
+,US-11,"Testing & Code Quality (JUnit, CI/CD)",Sprint 4,Team,20/03/2026,28/03/2026,"As a QA Engineer, I want automated testing with measurable coverage so I can verify system reliability.",No,High,Not Started,5,Yes
+,US-12,Responsive Performance & 2-Second Search,Sprint 4,Team,26/03/2026,05/04/2026,"As a Tenant, I want to be able to search properties for viewing and search results to load within 2 seconds so the system feels fast.",No,High,Not Started,3,Yes
+,US-13,Transaction Atomicity (Full Rollback),Sprint 4,Team,26/03/2026,06/04/2026,"As a user, I want all booking/billing transactions to complete fully or not at all so the database remains safe.",No,High,Not Started,3,Yes
+,US-14,Import & Manage Utility Usage Data for Monthly Bill,Sprint 4,Team,27/03/2026,03/04/2026,"As Admin Staff, I want to input/import utility data so consolidated billing reflects real consumption.",No,High,Not Started,5,Yes
+,US-15,Misuse Billing for Maintenance,Sprint 4,Team,27/03/2026,04/04/2026,"As a Tenant, I want to be charged for misuse-related maintenance to ensure accountability.",No,Medium,Not Started,4,Yes
+,US-16,Enhancement & E-Portfolio Update,Sprint 5,Team,01/05/2026,30/05/2026,"As a student developer, I want to optimize features, fix bugs, and document learnings in a portfolio so I can showcase it professionally.",No,Low,Not Started,3,Yes

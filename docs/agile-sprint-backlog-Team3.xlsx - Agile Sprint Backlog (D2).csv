@@ -1,0 +1,77 @@
+,AGILE SPRINT BACKLOG TEMPLATE WITH BURNDOWN CHART,,,,,,,,,,
+,,,,,,,,,,,
+,Team ,3,,,,,,,,,
+,Project,Real Estate Management System (REMS),,,,,,,,,
+,,,,,,,,,,,
+,BACKLOG TASK & ID,STORY POINTS,ASSIGNED TO,STATUS,ORIGINAL ESTIMATE,DAY 1,DAY 2,DAY 3,DAY 4,DAY 5,SPRINT REVIEW
+,User Story #1 – Create Software Requirements Specification (SRS),5,Team,Done,12,10,8,4,1,0,Completed
+,Task 1.1 – Gather functional & non-functional requirements,2,Team,Done,4,3,2,1,0,0,Done
+,Task 1.2 – Draft use cases & actors,1,Team,Done,3,3,1,1,0,0,Done
+,Task 1.3 – Write user stories & acceptance criteria,1,Team,Done,3,2,1,1,0,0,Done
+,Task 1.4 – Format complete SRS document,1,Team,Done,2,2,2,1,0,0,Done
+,User Story #2 – Develop System Architecture & UML Design,8,Team,In-Progress,20,17,14,6,2,0,In Review
+,Task 2.1 – Create high-level system architecture (Layered/MVC),2,Team,Done,6,4,3,1,0,0,Completed component-based architecture and interfaces diagram for REMS.
+,Task 2.2 – Draft UML Class Diagram,2,Team,Done,5,5,4,2,1,0,"Domain model completed with entities, attributes, associations, and multiplicities."
+,Task 2.3 – Create ERD / Database Schema,2,Team,In-Progress,5,4,4,1,0,0,Pending
+,Task 2.4 – Create Sequence & Activity Diagrams,2,Team,Done,4,4,3,2,1,0,"Diagrams completed covering scheduling, maintenance, rental applications, lease signing, and inventory management."
+,User Story #3 – Implement RBAC,5,Team,Not Started,18,15,12,8,4,0,Pending Review
+,Task 3.1 – Design role model (Tenant/Agent/Admin),1,Team,Not Started,4,3,2,1,0,0,Pending
+,Task 3.2 – Create login + authentication screen,2,Team,Not Started,6,5,4,2,1,0,Pending
+,Task 3.3 – Implement role-based API access,1,Team,Not Started,4,4,3,2,0,0,Pending
+,Task 3.4 – Enforce RBAC restrictions in UI,1,Team,Not Started,4,3,3,3,2,0,Pending
+,User Story #4 – Digital Lease Agreement Generation & Electronic Signing,8,Team,Not Started,22,18,15,9,3,0,Pending Review
+,Task 4.1 – Create lease template,2,Team,Not Started,6,5,3,2,0,0,Pending
+,Task 4.2 – Generate digital lease (Java),2,Team,Not Started,6,5,4,2,1,0,Pending
+,Task 4.3 – Store lease in DB (ERD link),2,Team,Not Started,5,4,3,2,0,0,Pending
+,Task 4.4 – Electronic signing + status update,2,Team,Not Started,5,4,5,3,2,0,Pending
+,User Story #5 – Overdue Alerts,3,Team,Not Started,10,8,6,4,2,0,Pending Review
+,Task 5.1 – Define alert triggers,1,Team,Not Started,3,2,1,0,0,0,Pending
+,Task 5.2 – Email notification logic,2,Team,Not Started,4,3,2,1,0,0,Pending
+,Task 5.3 – Add billing alert to DB,1,Team,Not Started,3,3,2,1,0,0,Pending
+,User Story #6 – Bulk Discount Billing,5,Team,Not Started,14,11,8,4,2,0,Pending Review
+,Task 6.1 – Design discount algorithm,2,Team,Not Started,5,4,3,2,0,0,Pending
+,Task 6.2 – Implement in billing API,2,Team,Not Started,5,4,2,2,0,0,Pending
+,Task 6.3 – UI Display final price,1,Team,Not Started,4,3,2,1,0,0,Pending
+,User Story #7 – Multi-Mall Property Management,4,Team,Not Started,12,9,7,5,2,0,Pending Review
+,Task 7.1 – Add “Mall” entity to DB,1,Team,Not Started,4,3,2,1,0,0,Pending
+,"Task 7.2 – store and manage details for each store unit, including location, size, rental rate, classification tier, intended business purpose, and availability.",2,Team,Not Started,4,3,2,2,0,0,Pending
+,Task 7.3 – Link units to malls and /add/update/delete store unit records,1,Team,Not Started,4,3,3,1,0,0,Pending
+,User Story #8 – Mobile-Friendly & Responsive UI,5,Team,Not Started,14,12,9,6,3,0,Pending Review
+,Task 8.1 – Responsive UI layout,2,Team,Not Started,5,4,3,2,0,0,Pending
+,Task 8.2 – Mobile menu & navigation,2,Team,Not Started,5,4,3,2,1,0,Pending
+,Task 8.3 – Cross-browser testing,1,Team,Not Started,4,4,3,2,2,0,Pending
+,User Story #9 – System Recovery from Partial Failures,5,Team,Not Started,15,13,9,6,3,0,Pending Review
+,Task 9.1 – Failure detection logic,2,Team,Not Started,6,4,3,2,1,0,Pending
+,Task 9.2 – Auto restore transaction state,2,Team,Not Started,5,4,3,2,1,0,Pending
+,Task 9.3 – Failure scenario tests,1,Team,Not Started,4,4,3,2,1,0,Pending
+,User Story #10 – Lease Tracking & Automatic Renewal,4,Team,Not Started,12,10,8,6,3,0,Pending Review
+,Task 10.1 – Track lease start/end dates in DB,1,Team,Not Started,4,3,2,1,0,0,Pending
+,Task 10.2 – Add expiry/renewal notification logic,2,Team,Not Started,5,4,3,2,1,0,Pending
+,Task 10.3 – Let lease be automatically renewed unless cancelled,1,Team,Not Started,3,3,2,1,0,0,Pending
+,User Story #11 – Testing & CI/CD,5,Team,Not Started,18,13,11,8,3,0,Pending Review
+,Task 11.1 – JUnit test setup,2,Team,Not Started,6,4,3,2,0,0,Pending
+,Task 11.2 – CI/CD GitHub pipeline,2,Team,Not Started,6,5,4,2,1,0,Pending
+,Task 11.3 – Code coverage metrics,1,Team,Not Started,6,4,4,3,2,0,Pending
+,User Story #12 – 2-Second Search Performance,3,Team,Not Started,8,7,5,3,1,0,Pending Review
+,Task 12.1 – Optimize DB query,2,Team,Not Started,5,4,3,2,1,0,Pending
+,Task 12.2 – Add search index and display search results,1,Team,Not Started,3,3,2,1,0,0,Pending
+,User Story #13 – Transaction Atomicity (Rollback),3,Team,Not Started,9,8,6,4,1,0,Pending Review
+,Task 13.1 – Implement DB rollback rules,2,Team,Not Started,5,4,3,1,0,0,Pending
+,Task 13.2 – Test rollback behavior,1,Team,Not Started,4,4,3,2,1,0,Pending
+,User Story #14 – Import & Manage Utility Usage Data for Monthly Bill,5,Team,Not Started,15,12,10,7,3,0,Pending Review
+,Task 14.1 – DB model for utility usage,2,Team,Not Started,6,5,4,2,1,0,Pending
+,Task 14.2 – Import CSV / manual entry UI,2,Team,Not Started,5,4,3,2,1,0,Pending
+,Task 14.3 – Integrate with billing system,1,Team,Not Started,4,3,3,1,1,0,Pending
+,User Story #15 – Misuse Billing for Maintenance,4,Team,Not Started,12,10,8,5,2,0,Pending Review
+,Task 15.1 – Add misuse billing rules to DB,2,Team,Not Started,5,4,3,2,0,0,Pending
+,Task 15.2 – Admin override for billing,1,Team,Not Started,4,3,2,1,1,0,Pending
+,Task 15.3 – UI + invoice update,1,Team,Not Started,3,3,3,2,1,0,Pending
+,User Story #16 — Enhancement & E-Portfolio Update,3,Team,Not Started,14,12,9,5,2,0,Not Started
+,Task 16.1 – Fix bugs from Sprint 4 testing,1,Team,Not Started,5,4,3,2,1,0,Pending
+,Task 16.2 – UI improvements + polish,1,Team,Not Started,5,4,3,2,1,0,Pending
+,Task 16.3 – Prepare documentation & final portfolio,1,Team,Not Started,4,4,3,1,1,0,Pending
+,User Story #17  — Schedule Viewing Appointments,6,Team,In-Progress,16,13,10,6,3,0,Pending Review
+,Task 17.1 - Allow scheduling of appointments in available time slots,3,Team,Done,6,5,4,2,1,0,Sequence diagram completed showing availability retrieval and appointment creation flow.
+,Task 17.2 - Prevent double booking,2,Team,Done,5,4,3,2,1,0,Conflict detection modeled using alternate paths in sequence diagram.
+,Task 17.3 - Send confirmation notification,1,Team,Done,4,4,3,2,1,0,Notification service interaction modeled and validated in sequence diagram.
+,TOTAL,81,,,241,198,155,96,40,0,
