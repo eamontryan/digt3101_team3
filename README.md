@@ -1,8 +1,8 @@
 # Real Estate Management System (REMS) 🏢
 
 > **Course:** YU-DIGT Software Engineering  
-> **Deliverable:** 1 - Requirements & Planning  
-> **Date:** November 23, 2025
+> **Deliverable:** 2 - System Architecture (SDD)   
+> **Date:** Feburary 1, 2026
 
 ## 📖 Project Overview
 The **Real Estate Management System (REMS)** is a comprehensive, Java-based software solution designed to automate commercial property management for large-scale mall developments.
@@ -47,9 +47,9 @@ The project follows an Agile development cycle divided into 5 Sprints.
 | Phase | Deliverable | Deadline | Status |
 | :--- | :--- | :--- | :--- |
 | **Phase 1** | **SRS & Project Plan** | Nov 23, 2025 | ✅ Completed |
-| **Phase 2** | **System Architecture (SDD)** | Feb 01, 2026 | 🚧 In Progress |
-| **Phase 3** | **Core Implementation** | Mar 22, 2026 | 📅 Planned |
-| **Phase 4** | **Testing & QA** | Mar 22, 2026 | 📅 Planned |
+| **Phase 2** | **System Architecture (SDD)** | Feb 01, 2026 | ✅ Completed |
+| **Phase 3** | **Core Implementation** | Mar 22, 2026 | 🚧 In Progress |
+| **Phase 4** | **Testing & QA** | Mar 22, 2026 | 🚧 In Progress |
 | **Phase 5** | **Enhancements** | Summer 2026 | 📅 Planned |
 
 ## 📂 Repository Structure
