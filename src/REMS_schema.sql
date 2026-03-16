@@ -73,6 +73,7 @@ CREATE TABLE appointment (
     tenant_id       INT NOT NULL,
     unit_id         INT NOT NULL,
     date_time       DATETIME NOT NULL,
+    end_time        DATETIME NOT NULL,
     status          ENUM('Scheduled', 'Completed', 'Cancelled', 'No-Show') NOT NULL DEFAULT 'Scheduled',
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -85,7 +86,11 @@ CREATE TABLE appointment (
         ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_appointment_unit
         FOREIGN KEY (unit_id) REFERENCES store_unit(unit_id)
-        ON DELETE CASCADE ON UPDATE CASCADE
+        ON DELETE CASCADE ON UPDATE CASCADE,
+
+    -- Prevent double-bookings for the same agent or unit at the same time
+    CONSTRAINT uq_agent_datetime  UNIQUE (agent_id, date_time),
+    CONSTRAINT uq_unit_datetime   UNIQUE (unit_id, date_time)
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -114,15 +119,28 @@ CREATE TABLE rental_application (
 --          but at most 1 active lease per store unit.
 -- ============================================================
 CREATE TABLE lease (
-    lease_id       INT AUTO_INCREMENT PRIMARY KEY,
-    tenant_id      INT NOT NULL,
-    unit_id        INT NOT NULL,
-    start_date     DATE NOT NULL,
-    end_date       DATE NOT NULL,
-    payment_cycle  ENUM('Monthly', 'Quarterly', 'Semi-Annual', 'Annual') NOT NULL DEFAULT 'Monthly',
-    status         ENUM('Active', 'Expired', 'Terminated', 'Pending') NOT NULL DEFAULT 'Pending',
-    created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    lease_id              INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id             INT NOT NULL,
+    unit_id               INT NOT NULL,
+    start_date            DATE NOT NULL,
+    end_date              DATE NOT NULL,
+    payment_cycle         ENUM('Monthly', 'Quarterly', 'Semi-Annual', 'Annual') NOT NULL DEFAULT 'Monthly',
+    status                ENUM('Active', 'Expired', 'Terminated', 'Pending') NOT NULL DEFAULT 'Pending',
+
+    -- Electronic signing
+    tenant_signature      VARCHAR(255) DEFAULT NULL COMMENT 'Tenant e-signature token or hash',
+    tenant_signed_at      DATETIME DEFAULT NULL,
+    agent_signature       VARCHAR(255) DEFAULT NULL COMMENT 'Agent e-signature token or hash',
+    agent_signed_at       DATETIME DEFAULT NULL,
+    signature_status      ENUM('Unsigned', 'Partially Signed', 'Fully Signed') NOT NULL DEFAULT 'Unsigned',
+
+    -- Lease renewal policy
+    auto_renew            TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = auto-renew enabled',
+    renewal_rate_increase DECIMAL(5,2) DEFAULT NULL COMMENT 'Percentage increase on renewal e.g. 5.00 = 5%',
+    renewal_status        ENUM('Not Applicable', 'Pending Renewal', 'Renewed', 'Declined') NOT NULL DEFAULT 'Not Applicable',
+
+    created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_lease_tenant
         FOREIGN KEY (tenant_id) REFERENCES `user`(user_id)
@@ -173,34 +191,126 @@ CREATE TABLE payment (
 -- ============================================================
 CREATE TABLE utility_usage (
     utility_id    INT AUTO_INCREMENT PRIMARY KEY,
-    invoice_id    INT NOT NULL,
-    type          VARCHAR(50) NOT NULL COMMENT 'e.g. Electricity, Water, Gas',
+    unit_id       INT NOT NULL COMMENT 'Store unit where consumption was recorded',
+    invoice_id    INT DEFAULT NULL COMMENT 'NULL until consolidated into an invoice',
+    type          ENUM('Electricity', 'Water', 'Waste Management') NOT NULL,
     usage_amount  DECIMAL(10,2) NOT NULL,
     billing_month DATE NOT NULL COMMENT 'First day of the billing month',
     amount        DECIMAL(12,2) NOT NULL COMMENT 'Billed amount',
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
+    CONSTRAINT fk_utility_unit
+        FOREIGN KEY (unit_id) REFERENCES store_unit(unit_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_utility_invoice
         FOREIGN KEY (invoice_id) REFERENCES invoice(invoice_id)
-        ON DELETE CASCADE ON UPDATE CASCADE
+        ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
 -- ============================================================
 -- 10. MAINTENANCE_REQUEST  (Lease 1 — 0..* MaintenanceRequest)
 -- ============================================================
 CREATE TABLE maintenance_request (
-    request_id   INT AUTO_INCREMENT PRIMARY KEY,
-    lease_id     INT NOT NULL,
-    category     VARCHAR(100) NOT NULL,
-    priority     ENUM('Low', 'Medium', 'High', 'Urgent') NOT NULL DEFAULT 'Medium',
-    status       ENUM('Open', 'In Progress', 'Resolved', 'Closed', 'Rejected') NOT NULL DEFAULT 'Open',
-    misuse_flag  TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = flagged as misuse',
-    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    request_id    INT AUTO_INCREMENT PRIMARY KEY,
+    lease_id      INT NOT NULL,
+    category      VARCHAR(100) NOT NULL,
+    description   TEXT COMMENT 'Tenant description of the issue',
+    priority      ENUM('Low', 'Medium', 'High', 'Urgent') NOT NULL DEFAULT 'Medium',
+    status        ENUM('Open', 'In Progress', 'Resolved', 'Closed', 'Rejected') NOT NULL DEFAULT 'Open',
+    misuse_flag   TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = flagged as misuse',
+    charge_amount DECIMAL(12,2) DEFAULT NULL COMMENT 'Amount charged to tenant for misuse-related repairs',
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_maintenance_lease
         FOREIGN KEY (lease_id) REFERENCES lease(lease_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+
+-- ============================================================
+-- 11. NOTIFICATION  (appointment confirmations, overdue alerts, etc.)
+-- ============================================================
+CREATE TABLE notification (
+    notification_id INT AUTO_INCREMENT PRIMARY KEY,
+    recipient_id    INT NOT NULL,
+    type            ENUM('Appointment Confirmation', 'Appointment Update', 'Payment Overdue',
+                         'Lease Renewal', 'Maintenance Update', 'General') NOT NULL,
+    title           VARCHAR(255) NOT NULL,
+    message         TEXT NOT NULL,
+    related_entity  VARCHAR(50) DEFAULT NULL COMMENT 'e.g. appointment, invoice, lease',
+    related_id      INT DEFAULT NULL COMMENT 'PK of the related entity',
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_notification_recipient
+        FOREIGN KEY (recipient_id) REFERENCES `user`(user_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 12. APPLICATION_DOCUMENT  (file uploads for rental applications)
+-- ============================================================
+CREATE TABLE application_document (
+    document_id    INT AUTO_INCREMENT PRIMARY KEY,
+    application_id INT NOT NULL,
+    file_name      VARCHAR(255) NOT NULL,
+    file_path      VARCHAR(500) NOT NULL COMMENT 'Server path or object-storage URL',
+    file_type      VARCHAR(50) COMMENT 'e.g. pdf, jpg, png',
+    file_size      INT COMMENT 'Size in bytes',
+    uploaded_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_app_doc_application
+        FOREIGN KEY (application_id) REFERENCES rental_application(application_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 13. LEASE_DOCUMENT  (auto-generated lease agreements)
+-- ============================================================
+CREATE TABLE lease_document (
+    document_id   INT AUTO_INCREMENT PRIMARY KEY,
+    lease_id      INT NOT NULL,
+    file_name     VARCHAR(255) NOT NULL,
+    file_path     VARCHAR(500) NOT NULL COMMENT 'Server path or object-storage URL',
+    generated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_lease_doc_lease
+        FOREIGN KEY (lease_id) REFERENCES lease(lease_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 14. INVOICE_LINE_ITEM  (breakdown of rent, utilities, fees)
+-- ============================================================
+CREATE TABLE invoice_line_item (
+    line_item_id  INT AUTO_INCREMENT PRIMARY KEY,
+    invoice_id    INT NOT NULL,
+    description   VARCHAR(255) NOT NULL,
+    type          ENUM('Rent', 'Electricity', 'Water', 'Waste Management', 'Late Fee', 'Maintenance Charge', 'Discount', 'Other') NOT NULL,
+    amount        DECIMAL(12,2) NOT NULL COMMENT 'Positive for charges, negative for credits/discounts',
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_line_item_invoice
+        FOREIGN KEY (invoice_id) REFERENCES invoice(invoice_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 15. DISCOUNT  (multi-unit discount for tenants)
+-- ============================================================
+CREATE TABLE discount (
+    discount_id     INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id       INT NOT NULL,
+    discount_pct    DECIMAL(5,2) NOT NULL COMMENT 'Percentage discount e.g. 10.00 = 10%',
+    start_date      DATE NOT NULL,
+    end_date        DATE DEFAULT NULL COMMENT 'NULL = no expiry',
+    status          ENUM('Active', 'Expired', 'Cancelled') NOT NULL DEFAULT 'Active',
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_discount_tenant
+        FOREIGN KEY (tenant_id) REFERENCES `user`(user_id)
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
@@ -222,7 +332,16 @@ CREATE INDEX idx_payment_status  ON payment(status);
 CREATE INDEX idx_maint_status    ON maintenance_request(status);
 CREATE INDEX idx_maint_priority  ON maintenance_request(priority);
 CREATE INDEX idx_utility_invoice ON utility_usage(invoice_id);
+CREATE INDEX idx_utility_unit    ON utility_usage(unit_id);
 CREATE INDEX idx_rental_app_status ON rental_application(status);
+CREATE INDEX idx_notification_recipient ON notification(recipient_id);
+CREATE INDEX idx_notification_read      ON notification(is_read);
+CREATE INDEX idx_app_doc_application    ON application_document(application_id);
+CREATE INDEX idx_lease_doc_lease        ON lease_document(lease_id);
+CREATE INDEX idx_line_item_invoice      ON invoice_line_item(invoice_id);
+CREATE INDEX idx_discount_tenant        ON discount(tenant_id);
+CREATE INDEX idx_discount_status        ON discount(status);
+CREATE INDEX idx_lease_signature        ON lease(signature_status);
 
 
 -- ============================================================
@@ -276,13 +395,13 @@ VALUES
 (3, 'Level 1, Unit L1-02',     65.00,  45000.00, 'Economy',  'Food & Beverage', 'Under Maintenance', 'leasing@horizon.com');
 
 -- Appointments
-INSERT INTO appointment (agent_id, tenant_id, unit_id, date_time, status)
+INSERT INTO appointment (agent_id, tenant_id, unit_id, date_time, end_time, status)
 VALUES
-(3, 6,  2, '2026-03-10 10:00:00', 'Completed'),
-(3, 7,  4, '2026-03-11 14:00:00', 'Completed'),
-(4, 8,  7, '2026-03-12 11:00:00', 'Scheduled'),
-(4, 9,  9, '2026-03-13 09:30:00', 'Scheduled'),
-(5, 10, 2, '2026-03-15 15:00:00', 'Scheduled');
+(3, 6,  2, '2026-03-10 10:00:00', '2026-03-10 11:00:00', 'Completed'),
+(3, 7,  4, '2026-03-11 14:00:00', '2026-03-11 15:00:00', 'Completed'),
+(4, 8,  7, '2026-03-12 11:00:00', '2026-03-12 12:00:00', 'Scheduled'),
+(4, 9,  9, '2026-03-13 09:30:00', '2026-03-13 10:30:00', 'Scheduled'),
+(5, 10, 2, '2026-03-15 15:00:00', '2026-03-15 16:00:00', 'Scheduled');
 
 -- Rental Applications
 INSERT INTO rental_application (tenant_id, unit_id, submission_date, status)
@@ -296,13 +415,25 @@ VALUES
 (8,  7, '2026-03-12', 'Pending');
 
 -- Leases
-INSERT INTO lease (tenant_id, unit_id, start_date, end_date, payment_cycle, status)
+INSERT INTO lease (tenant_id, unit_id, start_date, end_date, payment_cycle, status,
+                   tenant_signature, tenant_signed_at, agent_signature, agent_signed_at, signature_status,
+                   auto_renew, renewal_term_months, renewal_notice_days, renewal_rate_increase, renewal_status)
 VALUES
-(6,  1, '2025-12-01', '2026-11-30', 'Monthly',      'Active'),
-(7,  3, '2026-01-01', '2026-12-31', 'Quarterly',    'Active'),
-(8,  6, '2026-02-01', '2027-01-31', 'Monthly',      'Active'),
-(9,  8, '2026-02-15', '2027-02-14', 'Semi-Annual',  'Active'),
-(10, 5, '2026-03-01', '2028-02-29', 'Annual',       'Active');
+(6,  1, '2025-12-01', '2026-11-30', 'Monthly',     'Active',
+ 'esign_anna_001',  '2025-11-20 14:30:00', 'esign_mike_001', '2025-11-21 09:00:00', 'Fully Signed',
+ 1, 12, 60, 5.00, 'Pending Renewal'),
+(7,  3, '2026-01-01', '2026-12-31', 'Quarterly',   'Active',
+ 'esign_brian_001', '2025-12-15 10:00:00', 'esign_lisa_001', '2025-12-16 11:00:00', 'Fully Signed',
+ 0, NULL, NULL, NULL, 'Not Applicable'),
+(8,  6, '2026-02-01', '2027-01-31', 'Monthly',     'Active',
+ 'esign_carla_001', '2026-01-18 16:00:00', 'esign_lisa_002', '2026-01-19 09:30:00', 'Fully Signed',
+ 1, 12, 30, 3.50, 'Not Applicable'),
+(9,  8, '2026-02-15', '2027-02-14', 'Semi-Annual', 'Active',
+ 'esign_derek_001', '2026-02-01 13:00:00', 'esign_david_001','2026-02-02 10:00:00', 'Fully Signed',
+ 1, 12, 90, 4.00, 'Not Applicable'),
+(10, 5, '2026-03-01', '2028-02-29', 'Annual',      'Active',
+ 'esign_elena_001', '2026-02-20 11:00:00', NULL, NULL, 'Partially Signed',
+ 0, NULL, NULL, NULL, 'Not Applicable');
 
 -- Invoices
 INSERT INTO invoice (lease_id, issue_date, due_date, total_amount, status)
@@ -335,35 +466,135 @@ VALUES
 -- Partial payment for overdue invoice
 (8,  35000.00,  '2026-03-14', '2026-03-15', 'Completed');
 
--- Utility Usage (linked to invoices)
-INSERT INTO utility_usage (invoice_id, type, usage_amount, billing_month, amount)
+-- Utility Usage (linked to store units and optionally to invoices)
+INSERT INTO utility_usage (unit_id, invoice_id, type, usage_amount, billing_month, amount)
 VALUES
--- Invoice 1 (Anna, Dec 2025)
-(1, 'Electricity', 520.00, '2025-12-01', 4800.00),
-(1, 'Water',       35.00,  '2025-12-01', 1200.00),
--- Invoice 2 (Anna, Jan 2026)
-(2, 'Electricity', 480.00, '2026-01-01', 4500.00),
-(2, 'Water',       32.00,  '2026-01-01', 1100.00),
--- Invoice 5 (Brian, Q1 2026)
-(5, 'Electricity', 780.00, '2026-01-01', 7200.00),
-(5, 'Water',       50.00,  '2026-01-01', 1800.00),
--- Invoice 7 (Carla, Feb 2026)
-(7, 'Electricity', 600.00, '2026-02-01', 5500.00),
-(7, 'Water',       40.00,  '2026-02-01', 1400.00),
-(7, 'Gas',         25.00,  '2026-02-01', 900.00),
--- Invoice 9 (Derek, Feb 2026)
-(9, 'Electricity', 450.00, '2026-02-01', 4200.00),
--- Invoice 10 (Elena, Mar 2026)
-(10, 'Electricity', 1200.00,'2026-03-01', 11000.00),
-(10, 'Water',       90.00,  '2026-03-01', 3200.00);
+-- Unit 1 / Invoice 1 (Anna, Dec 2025)
+(1, 1, 'Electricity', 520.00, '2025-12-01', 4800.00),
+(1, 1, 'Water',       35.00,  '2025-12-01', 1200.00),
+(1, 1, 'Waste Management', 1.00, '2025-12-01', 800.00),
+-- Unit 1 / Invoice 2 (Anna, Jan 2026)
+(1, 2, 'Electricity', 480.00, '2026-01-01', 4500.00),
+(1, 2, 'Water',       32.00,  '2026-01-01', 1100.00),
+(1, 2, 'Waste Management', 1.00, '2026-01-01', 800.00),
+-- Unit 3 / Invoice 5 (Brian, Q1 2026)
+(3, 5, 'Electricity', 780.00, '2026-01-01', 7200.00),
+(3, 5, 'Water',       50.00,  '2026-01-01', 1800.00),
+(3, 5, 'Waste Management', 1.00, '2026-01-01', 1000.00),
+-- Unit 6 / Invoice 7 (Carla, Feb 2026)
+(6, 7, 'Electricity', 600.00, '2026-02-01', 5500.00),
+(6, 7, 'Water',       40.00,  '2026-02-01', 1400.00),
+(6, 7, 'Waste Management', 1.00, '2026-02-01', 900.00),
+-- Unit 8 / Invoice 9 (Derek, Feb 2026)
+(8, 9, 'Electricity', 450.00, '2026-02-01', 4200.00),
+(8, 9, 'Waste Management', 1.00, '2026-02-01', 700.00),
+-- Unit 5 / Invoice 10 (Elena, Mar 2026)
+(5, 10, 'Electricity', 1200.00,'2026-03-01', 11000.00),
+(5, 10, 'Water',       90.00,  '2026-03-01', 3200.00),
+(5, 10, 'Waste Management', 1.00, '2026-03-01', 1500.00),
+-- Unit 9 / Not yet invoiced (recorded but pending consolidation)
+(9, NULL, 'Electricity', 350.00, '2026-03-01', 3200.00),
+(9, NULL, 'Water',       28.00,  '2026-03-01', 950.00);
 
 -- Maintenance Requests
-INSERT INTO maintenance_request (lease_id, category, priority, status, misuse_flag)
+INSERT INTO maintenance_request (lease_id, category, description, priority, status, misuse_flag, charge_amount)
 VALUES
-(1, 'Plumbing',         'High',   'Resolved', 0),
-(1, 'Electrical',       'Medium', 'Open',     0),
-(3, 'HVAC',             'High',   'In Progress', 0),
-(3, 'Pest Control',     'Low',    'Open',     0),
-(4, 'Structural',       'Urgent', 'In Progress', 0),
-(5, 'Cleaning',         'Low',    'Resolved', 0),
-(2, 'Cosmetic Damage',  'Medium', 'Open',     1);
+(1, 'Plumbing',        'Leaking faucet in the back storage area causing water pooling',                'High',   'Resolved',    0, NULL),
+(1, 'Electrical',      'Flickering lights near the main entrance display area',                        'Medium', 'Open',        0, NULL),
+(3, 'HVAC',            'Air conditioning unit not cooling properly, temperature stays above 30C',      'High',   'In Progress', 0, NULL),
+(3, 'Pest Control',    'Small insects spotted near the food preparation counter',                      'Low',    'Open',        0, NULL),
+(4, 'Structural',      'Crack forming on the east wall near the ceiling, possible water damage',       'Urgent', 'In Progress', 0, NULL),
+(5, 'Cleaning',        'Deep cleaning requested for unit after renovation dust accumulation',          'Low',    'Resolved',    0, NULL),
+(2, 'Cosmetic Damage', 'Tenant caused scratches and dents on storefront glass panel and door frame',   'Medium', 'Open',        1, 15000.00);
+
+-- Notifications
+INSERT INTO notification (recipient_id, type, title, message, is_read, related_entity, related_id)
+VALUES
+-- Appointment confirmations
+(6,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit G-02 on Mar 10 at 10:00 AM has been confirmed.', 1, 'appointment', 1),
+(7,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit 2-02 on Mar 11 at 2:00 PM has been confirmed.',  1, 'appointment', 2),
+(8,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit A-02 on Mar 12 at 11:00 AM has been confirmed.', 0, 'appointment', 3),
+(9,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit L1-01 on Mar 13 at 9:30 AM has been confirmed.', 0, 'appointment', 4),
+(10, 'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit G-02 on Mar 15 at 3:00 PM has been confirmed.',  0, 'appointment', 5),
+-- Overdue payment alerts
+(8,  'Payment Overdue',          'Payment Overdue Notice',       'Your invoice #8 for Unit A-01 is overdue. Outstanding balance: 35,000.00. Please settle immediately.', 0, 'invoice', 8),
+(1,  'Payment Overdue',          'Overdue Payment Alert',        'Tenant Carla Mendoza has an overdue invoice #8 (35,000.00 remaining) for Unit A-01.', 0, 'invoice', 8),
+-- Lease renewal notification
+(6,  'Lease Renewal',            'Lease Renewal Reminder',       'Your lease for Unit G-01 expires on Nov 30, 2026. Auto-renewal is enabled with a 5% rate increase.', 0, 'lease', 1),
+-- Maintenance update
+(8,  'Maintenance Update',       'Maintenance In Progress',      'Your HVAC maintenance request is now being handled by our technician.', 0, 'maintenance_request', 3),
+-- General
+(1,  'General',                  'System Maintenance Scheduled', 'REMS will undergo scheduled maintenance on Mar 20, 2026 from 2:00 AM to 4:00 AM.', 0, NULL, NULL);
+
+-- Application Documents
+INSERT INTO application_document (application_id, file_name, file_path, file_type, file_size, uploaded_at)
+VALUES
+-- Anna's approved application for Unit G-01
+(1, 'anna_business_permit.pdf',    '/uploads/applications/1/anna_business_permit.pdf',    'pdf', 245000,  '2025-11-15 09:30:00'),
+(1, 'anna_valid_id.jpg',           '/uploads/applications/1/anna_valid_id.jpg',           'jpg', 180000,  '2025-11-15 09:32:00'),
+(1, 'anna_financial_statement.pdf','/uploads/applications/1/anna_financial_statement.pdf','pdf', 520000,  '2025-11-15 09:35:00'),
+-- Brian's approved application for Unit 2-01
+(2, 'brian_business_permit.pdf',   '/uploads/applications/2/brian_business_permit.pdf',   'pdf', 310000,  '2025-12-01 10:00:00'),
+(2, 'brian_valid_id.png',          '/uploads/applications/2/brian_valid_id.png',          'png', 200000,  '2025-12-01 10:05:00'),
+-- Carla's approved application for Unit A-01
+(3, 'carla_dti_registration.pdf',  '/uploads/applications/3/carla_dti_registration.pdf',  'pdf', 280000,  '2026-01-05 14:00:00'),
+(3, 'carla_valid_id.jpg',          '/uploads/applications/3/carla_valid_id.jpg',          'jpg', 150000,  '2026-01-05 14:10:00'),
+-- Anna's pending application for Unit G-02
+(6, 'anna_updated_permit.pdf',     '/uploads/applications/6/anna_updated_permit.pdf',     'pdf', 260000,  '2026-03-10 11:00:00');
+
+-- Lease Documents
+INSERT INTO lease_document (lease_id, file_name, file_path, version, generated_at)
+VALUES
+(1, 'lease_agreement_anna_unit_g01.pdf',    '/uploads/leases/1/lease_agreement_v1.pdf',   1, '2025-11-22 10:00:00'),
+(2, 'lease_agreement_brian_unit_201.pdf',   '/uploads/leases/2/lease_agreement_v1.pdf',   1, '2025-12-17 09:00:00'),
+(3, 'lease_agreement_carla_unit_a01.pdf',   '/uploads/leases/3/lease_agreement_v1.pdf',   1, '2026-01-20 11:00:00'),
+(4, 'lease_agreement_derek_unit_b01.pdf',   '/uploads/leases/4/lease_agreement_v1.pdf',   1, '2026-02-03 14:00:00'),
+(5, 'lease_agreement_elena_unit_301.pdf',   '/uploads/leases/5/lease_agreement_v1.pdf',   1, '2026-02-21 10:00:00'),
+-- Revised version for Anna's lease
+(1, 'lease_agreement_anna_unit_g01_v2.pdf', '/uploads/leases/1/lease_agreement_v2.pdf',   2, '2026-02-15 16:00:00');
+
+-- Invoice Line Items
+INSERT INTO invoice_line_item (invoice_id, description, type, amount)
+VALUES
+-- Invoice 1 (Anna, Dec 2025 - total 91800)
+(1, 'Monthly rent - Unit G-01',          'Rent',             85000.00),
+(1, 'Electricity - Dec 2025',            'Electricity',       4800.00),
+(1, 'Water - Dec 2025',                  'Water',             1200.00),
+(1, 'Waste Management - Dec 2025',       'Waste Management',   800.00),
+-- Invoice 2 (Anna, Jan 2026 - total 91400)
+(2, 'Monthly rent - Unit G-01',          'Rent',             85000.00),
+(2, 'Electricity - Jan 2026',            'Electricity',       4500.00),
+(2, 'Water - Jan 2026',                  'Water',             1100.00),
+(2, 'Waste Management - Jan 2026',       'Waste Management',   800.00),
+-- Invoice 5 (Brian, Q1 2026 - total 295000)
+(5, 'Quarterly rent - Unit 2-01',        'Rent',            285000.00),
+(5, 'Electricity - Q1 2026',             'Electricity',       7200.00),
+(5, 'Water - Q1 2026',                   'Water',             1800.00),
+(5, 'Waste Management - Q1 2026',        'Waste Management',  1000.00),
+-- Invoice 7 (Carla, Feb 2026 - total 77800)
+(7, 'Monthly rent - Unit A-01',          'Rent',             70000.00),
+(7, 'Electricity - Feb 2026',            'Electricity',       5500.00),
+(7, 'Water - Feb 2026',                  'Water',             1400.00),
+(7, 'Waste Management - Feb 2026',       'Waste Management',   900.00),
+-- Invoice 8 (Carla, Mar 2026 overdue - includes late fee)
+(8, 'Monthly rent - Unit A-01',          'Rent',             70000.00),
+(8, 'Late payment fee',                  'Late Fee',          2000.00),
+-- Invoice 9 (Derek, semi-annual)
+(9, 'Semi-annual rent - Unit B-01',      'Rent',            360000.00),
+(9, 'Electricity - Feb 2026',            'Electricity',       4200.00),
+(9, 'Waste Management - Feb 2026',       'Waste Management',   700.00),
+-- Invoice 10 (Elena, annual)
+(10, 'Annual rent - Unit 3-01',           'Rent',           1320000.00),
+(10, 'Electricity - Mar 2026',            'Electricity',      11000.00),
+(10, 'Water - Mar 2026',                  'Water',             3200.00),
+(10, 'Waste Management - Mar 2026',       'Waste Management',  1500.00);
+
+-- Discounts (multi-unit tenant discounts)
+INSERT INTO discount (tenant_id, min_units, discount_pct, start_date, end_date, status)
+VALUES
+-- Anna leases Unit G-01 and has a pending application for Unit G-02; discount kicks in if approved
+(6, 2, 5.00,  '2025-12-01', NULL, 'Active'),
+-- General policy: 3+ units gets 10%
+(6, 3, 10.00, '2025-12-01', NULL, 'Active'),
+-- Carla has potential multi-unit (Unit A-01 active, Unit A-02 pending)
+(8, 2, 5.00,  '2026-02-01', NULL, 'Active');
