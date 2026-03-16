@@ -1,0 +1,42 @@
+/* REMS Custom Styles */
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fa;
+}
+
+main {
+    flex: 1;
+}
+
+.navbar-brand {
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+}
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    color: #6c757d;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.list-group-item-action:hover {
+    background-color: #f1f3f5;
+}

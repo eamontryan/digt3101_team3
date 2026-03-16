@@ -281,23 +281,7 @@ CREATE TABLE lease_document (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 14. INVOICE_LINE_ITEM  (breakdown of rent, utilities, fees)
--- ============================================================
-CREATE TABLE invoice_line_item (
-    line_item_id  INT AUTO_INCREMENT PRIMARY KEY,
-    invoice_id    INT NOT NULL,
-    description   VARCHAR(255) NOT NULL,
-    type          ENUM('Rent', 'Electricity', 'Water', 'Waste Management', 'Late Fee', 'Maintenance Charge', 'Discount', 'Other') NOT NULL,
-    amount        DECIMAL(12,2) NOT NULL COMMENT 'Positive for charges, negative for credits/discounts',
-    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_line_item_invoice
-        FOREIGN KEY (invoice_id) REFERENCES invoice(invoice_id)
-        ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
--- ============================================================
--- 15. DISCOUNT  (multi-unit discount for tenants)
+-- 14. DISCOUNT  (multi-unit discount for tenants)
 -- ============================================================
 CREATE TABLE discount (
     discount_id     INT AUTO_INCREMENT PRIMARY KEY,
@@ -335,10 +319,8 @@ CREATE INDEX idx_utility_invoice ON utility_usage(invoice_id);
 CREATE INDEX idx_utility_unit    ON utility_usage(unit_id);
 CREATE INDEX idx_rental_app_status ON rental_application(status);
 CREATE INDEX idx_notification_recipient ON notification(recipient_id);
-CREATE INDEX idx_notification_read      ON notification(is_read);
 CREATE INDEX idx_app_doc_application    ON application_document(application_id);
 CREATE INDEX idx_lease_doc_lease        ON lease_document(lease_id);
-CREATE INDEX idx_line_item_invoice      ON invoice_line_item(invoice_id);
 CREATE INDEX idx_discount_tenant        ON discount(tenant_id);
 CREATE INDEX idx_discount_status        ON discount(status);
 CREATE INDEX idx_lease_signature        ON lease(signature_status);
@@ -351,24 +333,24 @@ CREATE INDEX idx_lease_signature        ON lease(signature_status);
 -- Users: Admins
 INSERT INTO `user` (username, password, name, email, role, phone, status, company_name)
 VALUES
-('admin_john',  'hashed_pw_001', 'John Carter',   'john.carter@rems.com',   'Admin', '09171234567', 'Active', 'REMS Holdings Inc.'),
-('admin_sarah', 'hashed_pw_002', 'Sarah Mitchell','sarah.mitchell@rems.com','Admin', '09179876543', 'Active', 'REMS Holdings Inc.');
+('admin_john',  '$2b$12$uxNCjKfYzaf78GmTVYuHKev7bU3wpjwsv12CghGyBAVMrIdeK00WC', 'John Carter',   'john.carter@rems.com',   'Admin', '09171234567', 'Active', 'REMS Holdings Inc.'),
+('admin_sarah', '$2b$12$uxNCjKfYzaf78GmTVYuHKev7bU3wpjwsv12CghGyBAVMrIdeK00WC', 'Sarah Mitchell','sarah.mitchell@rems.com','Admin', '09179876543', 'Active', 'REMS Holdings Inc.');
 
 -- Users: Leasing Agents
 INSERT INTO `user` (username, password, name, email, role, phone, status, company_name, availability_schedule)
 VALUES
-('agent_mike',  'hashed_pw_003', 'Mike Torres',   'mike.torres@rems.com',   'LeasingAgent', '09181112233', 'Active', 'REMS Holdings Inc.', 'Mon-Fri 9AM-6PM'),
-('agent_lisa',  'hashed_pw_004', 'Lisa Reyes',    'lisa.reyes@rems.com',    'LeasingAgent', '09182223344', 'Active', 'REMS Holdings Inc.', 'Mon-Sat 10AM-7PM'),
-('agent_david', 'hashed_pw_005', 'David Chen',    'david.chen@rems.com',    'LeasingAgent', '09183334455', 'Active', 'REMS Holdings Inc.', 'Tue-Sat 8AM-5PM');
+('agent_mike',  '$2b$12$uxNCjKfYzaf78GmTVYuHKev7bU3wpjwsv12CghGyBAVMrIdeK00WC', 'Mike Torres',   'mike.torres@rems.com',   'LeasingAgent', '09181112233', 'Active', 'REMS Holdings Inc.', 'Mon-Fri 9AM-6PM'),
+('agent_lisa',  '$2b$12$uxNCjKfYzaf78GmTVYuHKev7bU3wpjwsv12CghGyBAVMrIdeK00WC', 'Lisa Reyes',    'lisa.reyes@rems.com',    'LeasingAgent', '09182223344', 'Active', 'REMS Holdings Inc.', 'Mon-Sat 10AM-7PM'),
+('agent_david', '$2b$12$uxNCjKfYzaf78GmTVYuHKev7bU3wpjwsv12CghGyBAVMrIdeK00WC', 'David Chen',    'david.chen@rems.com',    'LeasingAgent', '09183334455', 'Active', 'REMS Holdings Inc.', 'Tue-Sat 8AM-5PM');
 
 -- Users: Tenants
 INSERT INTO `user` (username, password, name, email, role, phone, status, preferred_payment_cycle)
 VALUES
-('tenant_anna',   'hashed_pw_006', 'Anna Lopez',     'anna.lopez@email.com',     'Tenant', '09191234567', 'Active', 'Monthly'),
-('tenant_brian',  'hashed_pw_007', 'Brian Santos',    'brian.santos@email.com',   'Tenant', '09192345678', 'Active', 'Quarterly'),
-('tenant_carla',  'hashed_pw_008', 'Carla Mendoza',  'carla.mendoza@email.com',  'Tenant', '09193456789', 'Active', 'Monthly'),
-('tenant_derek',  'hashed_pw_009', 'Derek Villanueva','derek.villa@email.com',    'Tenant', '09194567890', 'Active', 'Semi-Annual'),
-('tenant_elena',  'hashed_pw_010', 'Elena Cruz',      'elena.cruz@email.com',    'Tenant', '09195678901', 'Active', 'Annual');
+('tenant_anna',   '$2b$12$uxNCjKfYzaf78GmTVYuHKev7bU3wpjwsv12CghGyBAVMrIdeK00WC', 'Anna Lopez',     'anna.lopez@email.com',     'Tenant', '09191234567', 'Active', 'Monthly'),
+('tenant_brian',  '$2b$12$uxNCjKfYzaf78GmTVYuHKev7bU3wpjwsv12CghGyBAVMrIdeK00WC', 'Brian Santos',    'brian.santos@email.com',   'Tenant', '09192345678', 'Active', 'Quarterly'),
+('tenant_carla',  '$2b$12$uxNCjKfYzaf78GmTVYuHKev7bU3wpjwsv12CghGyBAVMrIdeK00WC', 'Carla Mendoza',  'carla.mendoza@email.com',  'Tenant', '09193456789', 'Active', 'Monthly'),
+('tenant_derek',  '$2b$12$uxNCjKfYzaf78GmTVYuHKev7bU3wpjwsv12CghGyBAVMrIdeK00WC', 'Derek Villanueva','derek.villa@email.com',    'Tenant', '09194567890', 'Active', 'Semi-Annual'),
+('tenant_elena',  '$2b$12$uxNCjKfYzaf78GmTVYuHKev7bU3wpjwsv12CghGyBAVMrIdeK00WC', 'Elena Cruz',      'elena.cruz@email.com',    'Tenant', '09195678901', 'Active', 'Annual');
 
 -- Malls
 INSERT INTO mall (name, location)
@@ -417,23 +399,23 @@ VALUES
 -- Leases
 INSERT INTO lease (tenant_id, unit_id, start_date, end_date, payment_cycle, status,
                    tenant_signature, tenant_signed_at, agent_signature, agent_signed_at, signature_status,
-                   auto_renew, renewal_term_months, renewal_notice_days, renewal_rate_increase, renewal_status)
+                   auto_renew, renewal_rate_increase, renewal_status)
 VALUES
 (6,  1, '2025-12-01', '2026-11-30', 'Monthly',     'Active',
  'esign_anna_001',  '2025-11-20 14:30:00', 'esign_mike_001', '2025-11-21 09:00:00', 'Fully Signed',
- 1, 12, 60, 5.00, 'Pending Renewal'),
+ 1, 5.00, 'Pending Renewal'),
 (7,  3, '2026-01-01', '2026-12-31', 'Quarterly',   'Active',
  'esign_brian_001', '2025-12-15 10:00:00', 'esign_lisa_001', '2025-12-16 11:00:00', 'Fully Signed',
- 0, NULL, NULL, NULL, 'Not Applicable'),
+ 0, NULL, 'Not Applicable'),
 (8,  6, '2026-02-01', '2027-01-31', 'Monthly',     'Active',
  'esign_carla_001', '2026-01-18 16:00:00', 'esign_lisa_002', '2026-01-19 09:30:00', 'Fully Signed',
- 1, 12, 30, 3.50, 'Not Applicable'),
+ 1, 3.50, 'Not Applicable'),
 (9,  8, '2026-02-15', '2027-02-14', 'Semi-Annual', 'Active',
  'esign_derek_001', '2026-02-01 13:00:00', 'esign_david_001','2026-02-02 10:00:00', 'Fully Signed',
- 1, 12, 90, 4.00, 'Not Applicable'),
+ 1, 4.00, 'Not Applicable'),
 (10, 5, '2026-03-01', '2028-02-29', 'Annual',      'Active',
  'esign_elena_001', '2026-02-20 11:00:00', NULL, NULL, 'Partially Signed',
- 0, NULL, NULL, NULL, 'Not Applicable');
+ 0, NULL, 'Not Applicable');
 
 -- Invoices
 INSERT INTO invoice (lease_id, issue_date, due_date, total_amount, status)
@@ -508,23 +490,23 @@ VALUES
 (2, 'Cosmetic Damage', 'Tenant caused scratches and dents on storefront glass panel and door frame',   'Medium', 'Open',        1, 15000.00);
 
 -- Notifications
-INSERT INTO notification (recipient_id, type, title, message, is_read, related_entity, related_id)
+INSERT INTO notification (recipient_id, type, title, message, related_entity, related_id)
 VALUES
 -- Appointment confirmations
-(6,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit G-02 on Mar 10 at 10:00 AM has been confirmed.', 1, 'appointment', 1),
-(7,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit 2-02 on Mar 11 at 2:00 PM has been confirmed.',  1, 'appointment', 2),
-(8,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit A-02 on Mar 12 at 11:00 AM has been confirmed.', 0, 'appointment', 3),
-(9,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit L1-01 on Mar 13 at 9:30 AM has been confirmed.', 0, 'appointment', 4),
-(10, 'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit G-02 on Mar 15 at 3:00 PM has been confirmed.',  0, 'appointment', 5),
+(6,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit G-02 on Mar 10 at 10:00 AM has been confirmed.', 'appointment', 1),
+(7,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit 2-02 on Mar 11 at 2:00 PM has been confirmed.',  'appointment', 2),
+(8,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit A-02 on Mar 12 at 11:00 AM has been confirmed.', 'appointment', 3),
+(9,  'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit L1-01 on Mar 13 at 9:30 AM has been confirmed.', 'appointment', 4),
+(10, 'Appointment Confirmation', 'Appointment Confirmed',        'Your viewing appointment for Unit G-02 on Mar 15 at 3:00 PM has been confirmed.',  'appointment', 5),
 -- Overdue payment alerts
-(8,  'Payment Overdue',          'Payment Overdue Notice',       'Your invoice #8 for Unit A-01 is overdue. Outstanding balance: 35,000.00. Please settle immediately.', 0, 'invoice', 8),
-(1,  'Payment Overdue',          'Overdue Payment Alert',        'Tenant Carla Mendoza has an overdue invoice #8 (35,000.00 remaining) for Unit A-01.', 0, 'invoice', 8),
+(8,  'Payment Overdue',          'Payment Overdue Notice',       'Your invoice #8 for Unit A-01 is overdue. Outstanding balance: 35,000.00. Please settle immediately.', 'invoice', 8),
+(1,  'Payment Overdue',          'Overdue Payment Alert',        'Tenant Carla Mendoza has an overdue invoice #8 (35,000.00 remaining) for Unit A-01.', 'invoice', 8),
 -- Lease renewal notification
-(6,  'Lease Renewal',            'Lease Renewal Reminder',       'Your lease for Unit G-01 expires on Nov 30, 2026. Auto-renewal is enabled with a 5% rate increase.', 0, 'lease', 1),
+(6,  'Lease Renewal',            'Lease Renewal Reminder',       'Your lease for Unit G-01 expires on Nov 30, 2026. Auto-renewal is enabled with a 5% rate increase.', 'lease', 1),
 -- Maintenance update
-(8,  'Maintenance Update',       'Maintenance In Progress',      'Your HVAC maintenance request is now being handled by our technician.', 0, 'maintenance_request', 3),
+(8,  'Maintenance Update',       'Maintenance In Progress',      'Your HVAC maintenance request is now being handled by our technician.', 'maintenance_request', 3),
 -- General
-(1,  'General',                  'System Maintenance Scheduled', 'REMS will undergo scheduled maintenance on Mar 20, 2026 from 2:00 AM to 4:00 AM.', 0, NULL, NULL);
+(1,  'General',                  'System Maintenance Scheduled', 'REMS will undergo scheduled maintenance on Mar 20, 2026 from 2:00 AM to 4:00 AM.', NULL, NULL);
 
 -- Application Documents
 INSERT INTO application_document (application_id, file_name, file_path, file_type, file_size, uploaded_at)
@@ -543,58 +525,22 @@ VALUES
 (6, 'anna_updated_permit.pdf',     '/uploads/applications/6/anna_updated_permit.pdf',     'pdf', 260000,  '2026-03-10 11:00:00');
 
 -- Lease Documents
-INSERT INTO lease_document (lease_id, file_name, file_path, version, generated_at)
+INSERT INTO lease_document (lease_id, file_name, file_path, generated_at)
 VALUES
-(1, 'lease_agreement_anna_unit_g01.pdf',    '/uploads/leases/1/lease_agreement_v1.pdf',   1, '2025-11-22 10:00:00'),
-(2, 'lease_agreement_brian_unit_201.pdf',   '/uploads/leases/2/lease_agreement_v1.pdf',   1, '2025-12-17 09:00:00'),
-(3, 'lease_agreement_carla_unit_a01.pdf',   '/uploads/leases/3/lease_agreement_v1.pdf',   1, '2026-01-20 11:00:00'),
-(4, 'lease_agreement_derek_unit_b01.pdf',   '/uploads/leases/4/lease_agreement_v1.pdf',   1, '2026-02-03 14:00:00'),
-(5, 'lease_agreement_elena_unit_301.pdf',   '/uploads/leases/5/lease_agreement_v1.pdf',   1, '2026-02-21 10:00:00'),
+(1, 'lease_agreement_anna_unit_g01.pdf',    '/uploads/leases/1/lease_agreement_v1.pdf',   '2025-11-22 10:00:00'),
+(2, 'lease_agreement_brian_unit_201.pdf',   '/uploads/leases/2/lease_agreement_v1.pdf',   '2025-12-17 09:00:00'),
+(3, 'lease_agreement_carla_unit_a01.pdf',   '/uploads/leases/3/lease_agreement_v1.pdf',   '2026-01-20 11:00:00'),
+(4, 'lease_agreement_derek_unit_b01.pdf',   '/uploads/leases/4/lease_agreement_v1.pdf',   '2026-02-03 14:00:00'),
+(5, 'lease_agreement_elena_unit_301.pdf',   '/uploads/leases/5/lease_agreement_v1.pdf',   '2026-02-21 10:00:00'),
 -- Revised version for Anna's lease
-(1, 'lease_agreement_anna_unit_g01_v2.pdf', '/uploads/leases/1/lease_agreement_v2.pdf',   2, '2026-02-15 16:00:00');
-
--- Invoice Line Items
-INSERT INTO invoice_line_item (invoice_id, description, type, amount)
-VALUES
--- Invoice 1 (Anna, Dec 2025 - total 91800)
-(1, 'Monthly rent - Unit G-01',          'Rent',             85000.00),
-(1, 'Electricity - Dec 2025',            'Electricity',       4800.00),
-(1, 'Water - Dec 2025',                  'Water',             1200.00),
-(1, 'Waste Management - Dec 2025',       'Waste Management',   800.00),
--- Invoice 2 (Anna, Jan 2026 - total 91400)
-(2, 'Monthly rent - Unit G-01',          'Rent',             85000.00),
-(2, 'Electricity - Jan 2026',            'Electricity',       4500.00),
-(2, 'Water - Jan 2026',                  'Water',             1100.00),
-(2, 'Waste Management - Jan 2026',       'Waste Management',   800.00),
--- Invoice 5 (Brian, Q1 2026 - total 295000)
-(5, 'Quarterly rent - Unit 2-01',        'Rent',            285000.00),
-(5, 'Electricity - Q1 2026',             'Electricity',       7200.00),
-(5, 'Water - Q1 2026',                   'Water',             1800.00),
-(5, 'Waste Management - Q1 2026',        'Waste Management',  1000.00),
--- Invoice 7 (Carla, Feb 2026 - total 77800)
-(7, 'Monthly rent - Unit A-01',          'Rent',             70000.00),
-(7, 'Electricity - Feb 2026',            'Electricity',       5500.00),
-(7, 'Water - Feb 2026',                  'Water',             1400.00),
-(7, 'Waste Management - Feb 2026',       'Waste Management',   900.00),
--- Invoice 8 (Carla, Mar 2026 overdue - includes late fee)
-(8, 'Monthly rent - Unit A-01',          'Rent',             70000.00),
-(8, 'Late payment fee',                  'Late Fee',          2000.00),
--- Invoice 9 (Derek, semi-annual)
-(9, 'Semi-annual rent - Unit B-01',      'Rent',            360000.00),
-(9, 'Electricity - Feb 2026',            'Electricity',       4200.00),
-(9, 'Waste Management - Feb 2026',       'Waste Management',   700.00),
--- Invoice 10 (Elena, annual)
-(10, 'Annual rent - Unit 3-01',           'Rent',           1320000.00),
-(10, 'Electricity - Mar 2026',            'Electricity',      11000.00),
-(10, 'Water - Mar 2026',                  'Water',             3200.00),
-(10, 'Waste Management - Mar 2026',       'Waste Management',  1500.00);
+(1, 'lease_agreement_anna_unit_g01_v2.pdf', '/uploads/leases/1/lease_agreement_v2.pdf',   '2026-02-15 16:00:00');
 
 -- Discounts (multi-unit tenant discounts)
-INSERT INTO discount (tenant_id, min_units, discount_pct, start_date, end_date, status)
+INSERT INTO discount (tenant_id, discount_pct, start_date, end_date, status)
 VALUES
 -- Anna leases Unit G-01 and has a pending application for Unit G-02; discount kicks in if approved
-(6, 2, 5.00,  '2025-12-01', NULL, 'Active'),
+(6, 5.00,  '2025-12-01', NULL, 'Active'),
 -- General policy: 3+ units gets 10%
-(6, 3, 10.00, '2025-12-01', NULL, 'Active'),
+(6, 10.00, '2025-12-01', NULL, 'Active'),
 -- Carla has potential multi-unit (Unit A-01 active, Unit A-02 pending)
-(8, 2, 5.00,  '2026-02-01', NULL, 'Active');
+(8, 5.00,  '2026-02-01', NULL, 'Active');
