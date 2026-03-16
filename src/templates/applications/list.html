@@ -1,0 +1,67 @@
+{% extends "layout/base.html" %}
+{% block title %}Rental Applications - REMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Rental Applications</h2>
+    {% if current_user.role == 'Tenant' %}
+    <a href="{{ url_for('applications.submit') }}" class="btn btn-primary">
+        <i class="bi bi-plus"></i> Submit Application
+    </a>
+    {% endif %}
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>Tenant</th>
+                <th>Unit</th>
+                <th>Submitted</th>
+                <th>Status</th>
+                <th>Documents</th>
+                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                <th>Actions</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for app in applications %}
+            <tr>
+                <td>{{ app.application_id }}</td>
+                <td>{{ app.tenant.name }}</td>
+                <td>{{ app.unit.location }} ({{ app.unit.mall.name }})</td>
+                <td>{{ app.submission_date.strftime('%b %d, %Y') }}</td>
+                <td>
+                    <span class="badge {% if app.status == 'Approved' %}bg-success{% elif app.status == 'Pending' %}bg-warning text-dark{% elif app.status == 'Rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                        {{ app.status }}
+                    </span>
+                </td>
+                <td>{{ app.documents|length }} file(s)</td>
+                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                <td>
+                    {% if app.status == 'Pending' %}
+                    <form method="POST" action="{{ url_for('applications.approve', app_id=app.application_id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('applications.reject', app_id=app.application_id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">No applications found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
