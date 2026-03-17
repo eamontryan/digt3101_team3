@@ -1,0 +1,55 @@
+{% extends "layout/base.html" %}
+{% block title %}Sign Lease #{{ lease.lease_id }} - REMS{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Sign Lease Agreement</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="mb-4">
+            <h5>Lease Summary</h5>
+            <p><strong>Unit:</strong> {{ lease.unit.location }} ({{ lease.unit.mall.name }})</p>
+            <p><strong>Period:</strong> {{ lease.start_date.strftime('%b %d, %Y') }} - {{ lease.end_date.strftime('%b %d, %Y') }}</p>
+            <p><strong>Monthly Rate:</strong> {{ "%.2f"|format(lease.unit.rental_rate) }}</p>
+            <p><strong>Payment Cycle:</strong> {{ lease.payment_cycle }}</p>
+        </div>
+
+        <hr>
+
+        <div class="mb-3">
+            <h5>Current Signatures</h5>
+            <p>
+                <strong>Tenant:</strong>
+                {% if lease.tenant_signature %}
+                    Signed on {{ lease.tenant_signed_at.strftime('%b %d, %Y at %I:%M %p') }}
+                {% else %}
+                    <span class="text-danger">Not yet signed</span>
+                {% endif %}
+            </p>
+            <p>
+                <strong>Agent:</strong>
+                {% if lease.agent_signature %}
+                    Signed on {{ lease.agent_signed_at.strftime('%b %d, %Y at %I:%M %p') }}
+                {% else %}
+                    <span class="text-danger">Not yet signed</span>
+                {% endif %}
+            </p>
+        </div>
+
+        <hr>
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label"><strong>Your E-Signature</strong></label>
+                <input type="text" name="signature" class="form-control" placeholder="Type your full name to sign" required>
+                <div class="form-text">By typing your name above, you agree to the terms of this lease agreement.</div>
+            </div>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-pen"></i> Sign Lease
+            </button>
+            <a href="{{ url_for('leases.detail', lease_id=lease.lease_id) }}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
