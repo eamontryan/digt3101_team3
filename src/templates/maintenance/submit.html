@@ -1,0 +1,52 @@
+{% extends "layout/base.html" %}
+{% block title %}Submit Maintenance Request - REMS{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Submit Maintenance Request</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">Lease / Unit</label>
+                <select name="lease_id" class="form-select" required>
+                    <option value="">-- Select your lease --</option>
+                    {% for lease in leases %}
+                    <option value="{{ lease.lease_id }}">{{ lease.unit.location }} ({{ lease.unit.mall.name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-select" required>
+                    <option value="">-- Select --</option>
+                    <option value="Plumbing">Plumbing</option>
+                    <option value="Electrical">Electrical</option>
+                    <option value="HVAC">HVAC</option>
+                    <option value="Pest Control">Pest Control</option>
+                    <option value="Structural">Structural</option>
+                    <option value="Cleaning">Cleaning</option>
+                    <option value="Cosmetic Damage">Cosmetic Damage</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Priority</label>
+                <select name="priority" class="form-select">
+                    <option value="Low">Low</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="High">High</option>
+                    <option value="Urgent">Urgent</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea name="description" class="form-control" rows="4" placeholder="Describe the issue in detail..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Request</button>
+            <a href="{{ url_for('maintenance.list_requests') }}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

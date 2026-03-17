@@ -1,0 +1,78 @@
+{% extends "layout/base.html" %}
+{% block title %}Maintenance Requests - REMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Maintenance Requests</h2>
+    {% if current_user.role == 'Tenant' %}
+    <a href="{{ url_for('maintenance.submit') }}" class="btn btn-primary">
+        <i class="bi bi-plus"></i> Submit Request
+    </a>
+    {% endif %}
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Misuse</th>
+                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                <th>Actions</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in requests %}
+            <tr>
+                <td>{{ req.request_id }}</td>
+                <td>{{ req.category }}</td>
+                <td>{{ req.description[:80] }}{% if req.description|length > 80 %}...{% endif %}</td>
+                <td>
+                    <span class="badge {% if req.priority == 'Urgent' %}bg-danger{% elif req.priority == 'High' %}bg-warning text-dark{% elif req.priority == 'Medium' %}bg-info{% else %}bg-secondary{% endif %}">
+                        {{ req.priority }}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge {% if req.status == 'Open' %}bg-primary{% elif req.status == 'In Progress' %}bg-info{% elif req.status == 'Resolved' %}bg-success{% elif req.status == 'Closed' %}bg-secondary{% else %}bg-danger{% endif %}">
+                        {{ req.status }}
+                    </span>
+                </td>
+                <td>
+                    {% if req.misuse_flag %}
+                    <span class="badge bg-danger">Yes - {{ "%.2f"|format(req.charge_amount) if req.charge_amount else 'TBD' }}</span>
+                    {% else %}
+                    <span class="text-muted">No</span>
+                    {% endif %}
+                </td>
+                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                <td>
+                    {% if req.status not in ('Resolved', 'Closed') %}
+                    <form method="POST" action="{{ url_for('maintenance.update_status', request_id=req.request_id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <select name="status" class="form-select form-select-sm d-inline-block w-auto">
+                            <option value="Open">Open</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="Closed">Closed</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
+                    </form>
+                    {% endif %}
+                </td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">No maintenance requests</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
