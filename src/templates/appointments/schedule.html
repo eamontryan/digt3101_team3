@@ -1,0 +1,57 @@
+{% extends "layout/base.html" %}
+{% block title %}Schedule Appointment - REMS{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Schedule Appointment</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Unit to View</label>
+                    <select name="unit_id" class="form-select" required>
+                        <option value="">-- Select Unit --</option>
+                        {% for unit in units %}
+                        <option value="{{ unit.unit_id }}">{{ unit.mall.name }} - {{ unit.location }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Leasing Agent</label>
+                    <select name="agent_id" class="form-select" required>
+                        <option value="">-- Select Agent --</option>
+                        {% for agent in agents %}
+                        <option value="{{ agent.user_id }}">{{ agent.name }} ({{ agent.availability_schedule or 'Schedule N/A' }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if tenants %}
+                <div class="col-md-6">
+                    <label class="form-label">Tenant</label>
+                    <select name="tenant_id" class="form-select" required>
+                        <option value="">-- Select Tenant --</option>
+                        {% for t in tenants %}
+                        <option value="{{ t.user_id }}">{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-md-3">
+                    <label class="form-label">Start Date & Time</label>
+                    <input type="datetime-local" name="date_time" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">End Date & Time</label>
+                    <input type="datetime-local" name="end_time" class="form-control" required>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Schedule Appointment</button>
+                <a href="{{ url_for('appointments.list_appointments') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

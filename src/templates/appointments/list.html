@@ -1,0 +1,57 @@
+{% extends "layout/base.html" %}
+{% block title %}Appointments - REMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Appointments</h2>
+    <a href="{{ url_for('appointments.schedule') }}" class="btn btn-primary">
+        <i class="bi bi-plus"></i> Schedule Appointment
+    </a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>Date & Time</th>
+                <th>End Time</th>
+                <th>Agent</th>
+                <th>Tenant</th>
+                <th>Unit</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for appt in appointments %}
+            <tr>
+                <td>{{ appt.appointment_id }}</td>
+                <td>{{ appt.date_time.strftime('%b %d, %Y %I:%M %p') }}</td>
+                <td>{{ appt.end_time.strftime('%I:%M %p') }}</td>
+                <td>{{ appt.agent.name }}</td>
+                <td>{{ appt.tenant.name }}</td>
+                <td>{{ appt.unit.location }}</td>
+                <td>
+                    <span class="badge {% if appt.status == 'Scheduled' %}bg-primary{% elif appt.status == 'Completed' %}bg-success{% elif appt.status == 'Cancelled' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+                        {{ appt.status }}
+                    </span>
+                </td>
+                <td>
+                    {% if appt.status == 'Scheduled' %}
+                    <form method="POST" action="{{ url_for('appointments.cancel', appointment_id=appt.appointment_id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this appointment?')">Cancel</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center text-muted py-4">No appointments found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
