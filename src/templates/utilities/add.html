@@ -1,0 +1,49 @@
+{% extends "layout/base.html" %}
+{% block title %}Record Utility Usage - REMS{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Record Utility Usage</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Unit</label>
+                    <select name="unit_id" class="form-select" required>
+                        <option value="">-- Select Unit --</option>
+                        {% for unit in units %}
+                        <option value="{{ unit.unit_id }}">{{ unit.mall.name }} - {{ unit.location }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Utility Type</label>
+                    <select name="type" class="form-select" required>
+                        <option value="Electricity">Electricity</option>
+                        <option value="Water">Water</option>
+                        <option value="Waste Management">Waste Management</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Usage Amount</label>
+                    <input type="number" step="0.01" name="usage_amount" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Billing Month</label>
+                    <input type="date" name="billing_month" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Billed Amount</label>
+                    <input type="number" step="0.01" name="amount" class="form-control" required>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Record Usage</button>
+                <a href="{{ url_for('utilities.list_utilities') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
