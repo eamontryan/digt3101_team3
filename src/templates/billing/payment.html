@@ -1,0 +1,47 @@
+{% extends "layout/base.html" %}
+{% block title %}Make Payment - REMS{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Make Payment</h2>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header"><strong>Invoice #{{ invoice.invoice_id }}</strong></div>
+            <div class="card-body">
+                <table class="table">
+                    <tr><th>Unit</th><td>{{ invoice.lease.unit.location }}</td></tr>
+                    <tr><th>Due Date</th><td>{{ invoice.due_date.strftime('%b %d, %Y') }}</td></tr>
+                    <tr><th>Total Amount</th><td>{{ "%.2f"|format(invoice.total_amount) }}</td></tr>
+                    <tr>
+                        <th>Already Paid</th>
+                        <td>{{ "%.2f"|format(invoice.payments|sum(attribute='amount')) }}</td>
+                    </tr>
+                    <tr>
+                        <th>Remaining</th>
+                        <td><strong>{{ "%.2f"|format(invoice.total_amount - invoice.payments|sum(attribute='amount')) }}</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header"><strong>Payment</strong></div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Payment Amount</label>
+                        <input type="number" step="0.01" name="amount" class="form-control"
+                               value="{{ (invoice.total_amount - invoice.payments|sum(attribute='amount'))|round(2) }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-credit-card"></i> Submit Payment
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
