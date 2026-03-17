@@ -1,0 +1,84 @@
+{% extends "layout/base.html" %}
+{% block title %}Search Units - REMS{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Search Store Units</h2>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('store_units.search') }}">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Mall</label>
+                    <select name="mall_id" class="form-select">
+                        <option value="">All Malls</option>
+                        {% for mall in malls %}
+                        <option value="{{ mall.mall_id }}" {% if filters.get('mall_id') == mall.mall_id|string %}selected{% endif %}>
+                            {{ mall.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Availability</label>
+                    <select name="availability" class="form-select">
+                        <option value="">Any</option>
+                        <option value="Available" {% if filters.get('availability') == 'Available' %}selected{% endif %}>Available</option>
+                        <option value="Occupied" {% if filters.get('availability') == 'Occupied' %}selected{% endif %}>Occupied</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Min Size (sqm)</label>
+                    <input type="number" name="min_size" class="form-control" value="{{ filters.get('min_size', '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Max Rate</label>
+                    <input type="number" name="max_rate" class="form-control" value="{{ filters.get('max_rate', '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Tier</label>
+                    <select name="classification_tier" class="form-select">
+                        <option value="">Any</option>
+                        <option value="Economy" {% if filters.get('classification_tier') == 'Economy' %}selected{% endif %}>Economy</option>
+                        <option value="Standard" {% if filters.get('classification_tier') == 'Standard' %}selected{% endif %}>Standard</option>
+                        <option value="Premium" {% if filters.get('classification_tier') == 'Premium' %}selected{% endif %}>Premium</option>
+                        <option value="Anchor" {% if filters.get('classification_tier') == 'Anchor' %}selected{% endif %}>Anchor</option>
+                    </select>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    {% for unit in units %}
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{ unit.location }}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">{{ unit.mall.name }}</h6>
+                <p class="mb-1"><strong>Size:</strong> {{ unit.size }} sqm</p>
+                <p class="mb-1"><strong>Rate:</strong> {{ "%.2f"|format(unit.rental_rate) }}/month</p>
+                <p class="mb-1"><strong>Tier:</strong> {{ unit.classification_tier or 'N/A' }}</p>
+                <p class="mb-1"><strong>Purpose:</strong> {{ unit.business_purpose or 'N/A' }}</p>
+                <span class="badge {% if unit.availability == 'Available' %}bg-success{% elif unit.availability == 'Occupied' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+                    {{ unit.availability }}
+                </span>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('store_units.detail', unit_id=unit.unit_id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">No units found matching your criteria.</div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
