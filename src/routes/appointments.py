@@ -11,6 +11,13 @@ from datetime import datetime
 appointments_bp = Blueprint('appointments', __name__, url_prefix='/appointments')
 
 
+@appointments_bp.before_app_request
+def cleanup_past_appointments():
+    """Remove appointments whose end_time has passed."""
+    Appointment.query.filter(Appointment.end_time < datetime.now()).delete()
+    db.session.commit()
+
+
 @appointments_bp.route('/')
 @login_required
 def list_appointments():

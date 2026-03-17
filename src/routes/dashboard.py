@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
 from models.store_unit import StoreUnit
@@ -39,9 +40,10 @@ def admin_dashboard():
 
 
 def agent_dashboard():
-    upcoming = Appointment.query.filter_by(
-        agent_id=current_user.user_id,
-        status='Scheduled'
+    upcoming = Appointment.query.filter(
+        Appointment.agent_id == current_user.user_id,
+        Appointment.status == 'Scheduled',
+        Appointment.date_time >= datetime.now()
     ).order_by(Appointment.date_time).limit(10).all()
 
     return render_template('dashboard/agent.html', upcoming_appointments=upcoming)
