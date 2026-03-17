@@ -1,0 +1,89 @@
+{% extends "layout/base.html" %}
+{% block title %}Admin Dashboard - REMS{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Admin Dashboard</h2>
+<div class="row g-4">
+    <div class="col-md-4 col-lg">
+        <div class="card text-bg-primary shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-shop fs-1"></i>
+                <h3 class="mt-2">{{ total_units }}</h3>
+                <p class="mb-0">Total Units</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg">
+        <div class="card text-bg-success shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle fs-1"></i>
+                <h3 class="mt-2">{{ available_units }}</h3>
+                <p class="mb-0">Available</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg">
+        <div class="card text-bg-info shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-file-earmark-lock fs-1"></i>
+                <h3 class="mt-2">{{ active_leases }}</h3>
+                <p class="mb-0">Active Leases</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg">
+        <div class="card text-bg-warning shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-exclamation-triangle fs-1"></i>
+                <h3 class="mt-2">{{ overdue_invoices }}</h3>
+                <p class="mb-0">Overdue Invoices</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg">
+        <div class="card text-bg-danger shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-wrench fs-1"></i>
+                <h3 class="mt-2">{{ open_maintenance }}</h3>
+                <p class="mb-0">Open Maintenance</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4 g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header"><strong>Quick Actions</strong></div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('store_units.create') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-plus-circle"></i> Add Store Unit
+                </a>
+                <a href="{{ url_for('applications.list_applications') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-file-earmark-text"></i> Review Applications
+                </a>
+                <a href="{{ url_for('leases.list_leases') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-file-earmark-lock"></i> Manage Leases
+                </a>
+                <a href="{{ url_for('utilities.list_utilities') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-lightning"></i> Utility Usage
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header"><strong>System Overview</strong></div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Occupancy Rate:</strong>
+                    {% if total_units > 0 %}
+                        {{ ((total_units - available_units) / total_units * 100) | round(1) }}%
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
