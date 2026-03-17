@@ -15,3 +15,4 @@ class Invoice(db.Model):
 
     payments = db.relationship('Payment', backref='invoice', lazy=True)
     utility_usages = db.relationship('UtilityUsage', backref='invoice', lazy=True)
+    maintenance_charges = db.relationship('MaintenanceRequest', backref='invoice', lazy=True)

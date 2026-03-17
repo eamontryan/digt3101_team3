@@ -4,6 +4,7 @@ from routes import role_required
 from models import db
 from models.maintenance_request import MaintenanceRequest
 from models.lease import Lease
+from services.invoice_service import recalculate_invoice_total
 from services.notification_service import create_notification
 
 maintenance_bp = Blueprint('maintenance', __name__, url_prefix='/maintenance')
@@ -55,6 +56,10 @@ def update_status(request_id):
         maint_request.charge_amount = float(request.form.get('charge_amount', 0))
 
     db.session.commit()
+
+    # Recalculate invoice total if this charge is linked to an invoice
+    if maint_request.invoice_id and maint_request.invoice:
+        recalculate_invoice_total(maint_request.invoice)
 
     # Notify tenant
     lease = Lease.query.get(maint_request.lease_id)

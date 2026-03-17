@@ -20,13 +20,13 @@
         </thead>
         <tbody>
             {% for inv in invoices %}
-            <tr>
+            <tr class="invoice-row" style="cursor: pointer;" data-invoice-id="{{ inv.invoice_id }}">
                 <td>{{ inv.invoice_id }}</td>
                 <td>{{ inv.lease.tenant.name }}</td>
                 <td>{{ inv.lease.unit.location }}</td>
                 <td>{{ inv.issue_date.strftime('%b %d, %Y') }}</td>
                 <td>{{ inv.due_date.strftime('%b %d, %Y') }}</td>
-                <td>{{ "%.2f"|format(inv.total_amount) }}</td>
+                <td>${{ "%.2f"|format(inv.total_amount) }}</td>
                 <td>
                     <span class="badge {% if inv.status == 'Paid' %}bg-success{% elif inv.status == 'Overdue' %}bg-danger{% elif inv.status == 'Partially Paid' %}bg-info{% else %}bg-warning text-dark{% endif %}">
                         {{ inv.status }}
@@ -34,7 +34,7 @@
                 </td>
                 <td>
                     {% if inv.status in ('Pending', 'Overdue', 'Partially Paid') %}
-                    <a href="{{ url_for('billing.pay', invoice_id=inv.invoice_id) }}" class="btn btn-sm btn-success">Pay</a>
+                    <a href="{{ url_for('billing.pay', invoice_id=inv.invoice_id) }}" class="btn btn-sm btn-success" onclick="event.stopPropagation();">Pay</a>
                     {% endif %}
                 </td>
             </tr>
@@ -46,4 +46,135 @@
         </tbody>
     </table>
 </div>
+
+<!-- Invoice Detail Modal -->
+<div class="modal fade" id="invoiceDetailModal" tabindex="-1" aria-labelledby="invoiceDetailLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="invoiceDetailLabel">Invoice Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="invoiceDetailBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" id="invoicePayBtn" class="btn btn-success d-none">Make Payment</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = new bootstrap.Modal(document.getElementById('invoiceDetailModal'));
+    const modalBody = document.getElementById('invoiceDetailBody');
+    const modalLabel = document.getElementById('invoiceDetailLabel');
+    const payBtn = document.getElementById('invoicePayBtn');
+
+    document.querySelectorAll('.invoice-row').forEach(function (row) {
+        row.addEventListener('click', function () {
+            const invoiceId = this.dataset.invoiceId;
+            modalLabel.textContent = 'Invoice #' + invoiceId;
+            modalBody.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            payBtn.classList.add('d-none');
+            modal.show();
+
+            fetch('{{ url_for("billing.invoices") }}/' + invoiceId + '/detail')
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    let html = '';
+
+                    // Header info
+                    html += '<div class="row mb-3">';
+                    html += '<div class="col-md-6"><strong>Tenant:</strong> ' + data.tenant + '</div>';
+                    html += '<div class="col-md-6"><strong>Unit:</strong> ' + data.unit + '</div>';
+                    html += '</div>';
+                    html += '<div class="row mb-3">';
+                    html += '<div class="col-md-6"><strong>Issue Date:</strong> ' + data.issue_date + '</div>';
+                    html += '<div class="col-md-6"><strong>Due Date:</strong> ' + data.due_date + '</div>';
+                    html += '</div>';
+                    html += '<hr>';
+
+                    // Breakdown table
+                    html += '<h6>Charge Breakdown</h6>';
+                    html += '<table class="table table-sm">';
+                    html += '<tbody>';
+                    var rentLabel = 'Rent <small class="text-muted">($' + data.monthly_rate.toFixed(2) + '/mo';
+                    if (data.payment_cycle !== 'Monthly') {
+                        rentLabel += ' &times; ' + data.payment_cycle;
+                    }
+                    rentLabel += ')</small>';
+                    html += '<tr><td>' + rentLabel + '</td><td class="text-end">$' + data.rent_amount.toFixed(2) + '</td></tr>';
+
+                    if (data.utilities.length > 0) {
+                        html += '<tr class="table-light"><td colspan="2"><strong>Utilities</strong></td></tr>';
+                        data.utilities.forEach(function (u) {
+                            html += '<tr><td class="ps-4">' + u.type + ' <small class="text-muted">(' + u.usage_amount + ' units)</small></td>';
+                            html += '<td class="text-end">$' + u.amount.toFixed(2) + '</td></tr>';
+                        });
+                        html += '<tr><td class="ps-4"><em>Utilities Subtotal</em></td>';
+                        html += '<td class="text-end"><em>$' + data.utility_total.toFixed(2) + '</em></td></tr>';
+                    }
+
+                    if (data.maintenance_charges.length > 0) {
+                        html += '<tr class="table-light"><td colspan="2"><strong>Maintenance Charges (Misuse)</strong></td></tr>';
+                        data.maintenance_charges.forEach(function (m) {
+                            html += '<tr><td class="ps-4">' + m.category + ' <small class="text-muted">(' + m.description + ')</small></td>';
+                            html += '<td class="text-end">$' + m.amount.toFixed(2) + '</td></tr>';
+                        });
+                        html += '<tr><td class="ps-4"><em>Maintenance Subtotal</em></td>';
+                        html += '<td class="text-end"><em>$' + data.maintenance_total.toFixed(2) + '</em></td></tr>';
+                    }
+
+                    html += '</tbody>';
+                    html += '<tfoot>';
+                    html += '<tr class="table-dark"><td><strong>Total</strong></td>';
+                    html += '<td class="text-end"><strong>$' + data.total_amount.toFixed(2) + '</strong></td></tr>';
+                    html += '</tfoot></table>';
+
+                    // Payments section
+                    if (data.payments.length > 0) {
+                        html += '<h6>Payments</h6>';
+                        html += '<table class="table table-sm">';
+                        html += '<thead class="table-light"><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead>';
+                        html += '<tbody>';
+                        data.payments.forEach(function (p) {
+                            html += '<tr>';
+                            html += '<td>' + (p.date || 'N/A') + '</td>';
+                            html += '<td>$' + p.amount.toFixed(2) + '</td>';
+                            html += '<td><span class="badge ' + (p.status === 'Completed' ? 'bg-success' : 'bg-warning text-dark') + '">' + p.status + '</span></td>';
+                            html += '</tr>';
+                        });
+                        html += '</tbody></table>';
+                    }
+
+                    // Balance
+                    html += '<div class="d-flex justify-content-between align-items-center mt-3 p-3 rounded ' + (data.balance_due > 0 ? 'bg-warning bg-opacity-10 border border-warning' : 'bg-success bg-opacity-10 border border-success') + '">';
+                    html += '<strong>Balance Due:</strong>';
+                    html += '<span class="fs-5 fw-bold">$' + data.balance_due.toFixed(2) + '</span>';
+                    html += '</div>';
+
+                    modalBody.innerHTML = html;
+
+                    // Show pay button if balance remaining
+                    if (data.balance_due > 0) {
+                        payBtn.href = '{{ url_for("billing.invoices") }}/' + data.invoice_id + '/pay';
+                        payBtn.classList.remove('d-none');
+                    }
+                })
+                .catch(function () {
+                    modalBody.innerHTML = '<div class="alert alert-danger">Failed to load invoice details.</div>';
+                });
+        });
+    });
+});
+</script>
 {% endblock %}

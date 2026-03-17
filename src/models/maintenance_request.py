@@ -6,6 +6,7 @@ class MaintenanceRequest(db.Model):
 
     request_id = db.Column(db.Integer, primary_key=True)
     lease_id = db.Column(db.Integer, db.ForeignKey('lease.lease_id'), nullable=False)
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.invoice_id'))
     category = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     priority = db.Column(db.Enum('Low', 'Medium', 'High', 'Urgent'), nullable=False, default='Medium')

@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from decimal import Decimal
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from routes import role_required
 from models import db
@@ -23,13 +24,82 @@ def invoices():
     return render_template('billing/invoices.html', invoices=invoice_list)
 
 
+@billing_bp.route('/invoices/<int:invoice_id>/detail')
+@login_required
+def invoice_detail(invoice_id):
+    invoice = Invoice.query.get_or_404(invoice_id)
+
+    # Verify tenant can only view their own invoices
+    if current_user.role == 'Tenant' and invoice.lease.tenant_id != current_user.user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    cycle_multipliers = {
+        'Monthly': 1,
+        'Quarterly': 3,
+        'Semi-Annual': 6,
+        'Annual': 12,
+    }
+    multiplier = cycle_multipliers.get(invoice.lease.payment_cycle, 1)
+    rent_amount = float(invoice.lease.unit.rental_rate) * multiplier
+    utility_total = sum(float(u.amount) for u in invoice.utility_usages)
+    misuse_charges = [
+        m for m in invoice.maintenance_charges if m.misuse_flag and m.charge_amount
+    ]
+    misuse_total = sum(float(m.charge_amount) for m in misuse_charges)
+    total_paid = sum(float(p.amount) for p in invoice.payments if p.status == 'Completed')
+
+    data = {
+        'invoice_id': invoice.invoice_id,
+        'tenant': invoice.lease.tenant.name,
+        'unit': invoice.lease.unit.location,
+        'issue_date': invoice.issue_date.strftime('%b %d, %Y'),
+        'due_date': invoice.due_date.strftime('%b %d, %Y'),
+        'status': invoice.status,
+        'payment_cycle': invoice.lease.payment_cycle,
+        'monthly_rate': float(invoice.lease.unit.rental_rate),
+        'rent_amount': rent_amount,
+        'utilities': [
+            {
+                'type': u.type,
+                'usage_amount': float(u.usage_amount),
+                'amount': float(u.amount),
+            }
+            for u in invoice.utility_usages
+        ],
+        'utility_total': utility_total,
+        'maintenance_charges': [
+            {
+                'category': m.category,
+                'description': m.description,
+                'amount': float(m.charge_amount),
+            }
+            for m in misuse_charges
+        ],
+        'maintenance_total': misuse_total,
+        'total_amount': float(invoice.total_amount),
+        'payments': [
+            {
+                'payment_id': p.payment_id,
+                'amount': float(p.amount),
+                'date': p.payment_date.strftime('%b %d, %Y') if p.payment_date else None,
+                'status': p.status,
+            }
+            for p in invoice.payments
+        ],
+        'total_paid': total_paid,
+        'balance_due': float(invoice.total_amount) - total_paid,
+    }
+
+    return jsonify(data)
+
+
 @billing_bp.route('/invoices/<int:invoice_id>/pay', methods=['GET', 'POST'])
 @login_required
 def pay(invoice_id):
     invoice = Invoice.query.get_or_404(invoice_id)
 
     if request.method == 'POST':
-        amount = float(request.form['amount'])
+        amount = Decimal(request.form['amount'])
         payment = Payment(
             invoice_id=invoice_id,
             amount=amount,

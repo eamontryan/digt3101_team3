@@ -214,6 +214,7 @@ CREATE TABLE utility_usage (
 CREATE TABLE maintenance_request (
     request_id    INT AUTO_INCREMENT PRIMARY KEY,
     lease_id      INT NOT NULL,
+    invoice_id    INT DEFAULT NULL COMMENT 'Invoice the misuse charge was billed to',
     category      VARCHAR(100) NOT NULL,
     description   TEXT COMMENT 'Tenant description of the issue',
     priority      ENUM('Low', 'Medium', 'High', 'Urgent') NOT NULL DEFAULT 'Medium',
@@ -225,7 +226,10 @@ CREATE TABLE maintenance_request (
 
     CONSTRAINT fk_maintenance_lease
         FOREIGN KEY (lease_id) REFERENCES lease(lease_id)
-        ON DELETE CASCADE ON UPDATE CASCADE
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_maintenance_invoice
+        FOREIGN KEY (invoice_id) REFERENCES invoice(invoice_id)
+        ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
 
@@ -417,34 +421,34 @@ VALUES
  'esign_elena_001', '2026-02-20 11:00:00', NULL, NULL, 'Partially Signed',
  0, NULL, 'Not Applicable');
 
--- Invoices
+-- Invoices (total_amount = rent + linked utility charges)
 INSERT INTO invoice (lease_id, issue_date, due_date, total_amount, status)
 VALUES
--- Lease 1 (Anna, monthly)
-(1, '2025-12-01', '2025-12-15', 85000.00, 'Paid'),
-(1, '2026-01-01', '2026-01-15', 85000.00, 'Paid'),
-(1, '2026-02-01', '2026-02-15', 85000.00, 'Paid'),
-(1, '2026-03-01', '2026-03-15', 85000.00, 'Pending'),
--- Lease 2 (Brian, quarterly)
-(2, '2026-01-01', '2026-01-15', 285000.00, 'Paid'),
-(2, '2026-04-01', '2026-04-15', 285000.00, 'Pending'),
--- Lease 3 (Carla, monthly)
-(3, '2026-02-01', '2026-02-15', 70000.00, 'Paid'),
-(3, '2026-03-01', '2026-03-15', 70000.00, 'Overdue'),
--- Lease 4 (Derek, semi-annual)
-(4, '2026-02-15', '2026-03-01', 360000.00, 'Paid'),
--- Lease 5 (Elena, annual)
-(5, '2026-03-01', '2026-03-15', 1320000.00, 'Pending');
+-- Lease 1 (Anna, monthly, rent=85000)
+(1, '2025-12-01', '2025-12-15', 91800.00, 'Paid'),       -- + utilities 6800
+(1, '2026-01-01', '2026-01-15', 91400.00, 'Paid'),       -- + utilities 6400
+(1, '2026-02-01', '2026-02-15', 85000.00, 'Paid'),       -- no utilities linked
+(1, '2026-03-01', '2026-03-15', 85000.00, 'Pending'),    -- no utilities linked
+-- Lease 2 (Brian, quarterly, rent=285000)
+(2, '2026-01-01', '2026-01-15', 310000.00, 'Paid'),      -- + utilities 10000 + misuse 15000
+(2, '2026-04-01', '2026-04-15', 285000.00, 'Pending'),   -- no utilities linked
+-- Lease 3 (Carla, monthly, rent=70000)
+(3, '2026-02-01', '2026-02-15', 77800.00, 'Paid'),       -- + utilities 7800
+(3, '2026-03-01', '2026-03-15', 70000.00, 'Overdue'),    -- no utilities linked
+-- Lease 4 (Derek, semi-annual, rent=360000)
+(4, '2026-02-15', '2026-03-01', 364900.00, 'Paid'),      -- + utilities 4900
+-- Lease 5 (Elena, annual, rent=1320000)
+(5, '2026-03-01', '2026-03-15', 1335700.00, 'Pending');  -- + utilities 15700
 
--- Payments
+-- Payments (amounts match corrected invoice totals)
 INSERT INTO payment (invoice_id, amount, payment_date, due_date, status)
 VALUES
-(1,  85000.00,  '2025-12-10', '2025-12-15', 'Completed'),
-(2,  85000.00,  '2026-01-12', '2026-01-15', 'Completed'),
+(1,  91800.00,  '2025-12-10', '2025-12-15', 'Completed'),
+(2,  91400.00,  '2026-01-12', '2026-01-15', 'Completed'),
 (3,  85000.00,  '2026-02-14', '2026-02-15', 'Completed'),
-(5,  285000.00, '2026-01-14', '2026-01-15', 'Completed'),
-(7,  70000.00,  '2026-02-13', '2026-02-15', 'Completed'),
-(9,  360000.00, '2026-02-28', '2026-03-01', 'Completed'),
+(5,  310000.00, '2026-01-14', '2026-01-15', 'Completed'),
+(7,  77800.00,  '2026-02-13', '2026-02-15', 'Completed'),
+(9,  364900.00, '2026-02-28', '2026-03-01', 'Completed'),
 -- Partial payment for overdue invoice
 (8,  35000.00,  '2026-03-14', '2026-03-15', 'Completed');
 
@@ -479,15 +483,15 @@ VALUES
 (9, NULL, 'Water',       28.00,  '2026-03-01', 950.00);
 
 -- Maintenance Requests
-INSERT INTO maintenance_request (lease_id, category, description, priority, status, misuse_flag, charge_amount)
+INSERT INTO maintenance_request (lease_id, invoice_id, category, description, priority, status, misuse_flag, charge_amount)
 VALUES
-(1, 'Plumbing',        'Leaking faucet in the back storage area causing water pooling',                'High',   'Resolved',    0, NULL),
-(1, 'Electrical',      'Flickering lights near the main entrance display area',                        'Medium', 'Open',        0, NULL),
-(3, 'HVAC',            'Air conditioning unit not cooling properly, temperature stays above 30C',      'High',   'In Progress', 0, NULL),
-(3, 'Pest Control',    'Small insects spotted near the food preparation counter',                      'Low',    'Open',        0, NULL),
-(4, 'Structural',      'Crack forming on the east wall near the ceiling, possible water damage',       'Urgent', 'In Progress', 0, NULL),
-(5, 'Cleaning',        'Deep cleaning requested for unit after renovation dust accumulation',          'Low',    'Resolved',    0, NULL),
-(2, 'Cosmetic Damage', 'Tenant caused scratches and dents on storefront glass panel and door frame',   'Medium', 'Open',        1, 15000.00);
+(1, NULL, 'Plumbing',        'Leaking faucet in the back storage area causing water pooling',                'High',   'Resolved',    0, NULL),
+(1, NULL, 'Electrical',      'Flickering lights near the main entrance display area',                        'Medium', 'Open',        0, NULL),
+(3, NULL, 'HVAC',            'Air conditioning unit not cooling properly, temperature stays above 30C',      'High',   'In Progress', 0, NULL),
+(3, NULL, 'Pest Control',    'Small insects spotted near the food preparation counter',                      'Low',    'Open',        0, NULL),
+(4, NULL, 'Structural',      'Crack forming on the east wall near the ceiling, possible water damage',       'Urgent', 'In Progress', 0, NULL),
+(5, NULL, 'Cleaning',        'Deep cleaning requested for unit after renovation dust accumulation',          'Low',    'Resolved',    0, NULL),
+(2, 5,    'Cosmetic Damage', 'Tenant caused scratches and dents on storefront glass panel and door frame',   'Medium', 'Resolved',    1, 15000.00);
 
 -- Notifications
 INSERT INTO notification (recipient_id, type, title, message, related_entity, related_id)
