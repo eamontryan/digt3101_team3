@@ -1,0 +1,90 @@
+{% extends "layout/base.html" %}
+{% block title %}Tenant Dashboard - REMS{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Welcome, {{ current_user.name }}!</h2>
+
+<div class="row g-4">
+    <!-- Active Leases -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header"><strong>My Active Leases</strong></div>
+            <div class="list-group list-group-flush">
+                {% for lease in leases %}
+                <a href="{{ url_for('leases.detail', lease_id=lease.lease_id) }}" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between">
+                        <span>{{ lease.unit.location }}</span>
+                        <span class="badge bg-success">{{ lease.status }}</span>
+                    </div>
+                    <small class="text-muted">{{ lease.start_date.strftime('%b %d, %Y') }} - {{ lease.end_date.strftime('%b %d, %Y') }}</small>
+                </a>
+                {% else %}
+                <div class="list-group-item text-center text-muted py-4">No active leases</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Invoices -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header"><strong>Pending Invoices</strong></div>
+            <div class="list-group list-group-flush">
+                {% for inv in pending_invoices %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Invoice #{{ inv.invoice_id }}</strong><br>
+                        <small class="text-muted">Due: {{ inv.due_date.strftime('%b %d, %Y') }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge {% if inv.status == 'Overdue' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                            {{ inv.status }}
+                        </span><br>
+                        <strong>{{ "%.2f"|format(inv.total_amount) }}</strong>
+                    </div>
+                </div>
+                {% else %}
+                <div class="list-group-item text-center text-muted py-4">No pending invoices</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Notifications -->
+<div class="card shadow-sm mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Recent Notifications</strong>
+        <a href="{{ url_for('notifications.list_notifications') }}" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="list-group list-group-flush">
+        {% for notif in notifications %}
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between">
+                <strong>{{ notif.title }}</strong>
+                <small class="text-muted">{{ notif.created_at.strftime('%b %d, %Y') }}</small>
+            </div>
+            <p class="mb-0 small">{{ notif.message }}</p>
+        </div>
+        {% else %}
+        <div class="list-group-item text-center text-muted py-4">No notifications</div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card shadow-sm mt-4">
+    <div class="card-header"><strong>Quick Actions</strong></div>
+    <div class="list-group list-group-flush">
+        <a href="{{ url_for('store_units.search') }}" class="list-group-item list-group-item-action">
+            <i class="bi bi-search"></i> Search Available Units
+        </a>
+        <a href="{{ url_for('appointments.schedule') }}" class="list-group-item list-group-item-action">
+            <i class="bi bi-calendar-plus"></i> Schedule a Viewing
+        </a>
+        <a href="{{ url_for('maintenance.submit') }}" class="list-group-item list-group-item-action">
+            <i class="bi bi-wrench"></i> Submit Maintenance Request
+        </a>
+    </div>
+</div>
+{% endblock %}
