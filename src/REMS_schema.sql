@@ -425,32 +425,32 @@ VALUES
 INSERT INTO invoice (lease_id, issue_date, due_date, total_amount, status)
 VALUES
 -- Lease 1 (Anna, monthly, rent=85000)
-(1, '2025-12-01', '2025-12-15', 91800.00, 'Paid'),       -- + utilities 6800
-(1, '2026-01-01', '2026-01-15', 91400.00, 'Paid'),       -- + utilities 6400
-(1, '2026-02-01', '2026-02-15', 85000.00, 'Paid'),       -- no utilities linked
-(1, '2026-03-01', '2026-03-15', 85000.00, 'Pending'),    -- no utilities linked
+(1, '2025-12-01', '2026-01-01', 91800.00, 'Paid'),       -- + utilities 6800
+(1, '2026-01-01', '2026-02-01', 91400.00, 'Paid'),       -- + utilities 6400
+(1, '2026-02-01', '2026-03-01', 85000.00, 'Paid'),       -- no utilities linked
+(1, '2026-03-01', '2026-04-01', 85000.00, 'Pending'),    -- no utilities linked
 -- Lease 2 (Brian, quarterly, rent=285000)
-(2, '2026-01-01', '2026-01-15', 310000.00, 'Paid'),      -- + utilities 10000 + misuse 15000
-(2, '2026-04-01', '2026-04-15', 285000.00, 'Pending'),   -- no utilities linked
+(2, '2026-01-01', '2026-02-01', 310000.00, 'Paid'),      -- + utilities 10000 + misuse 15000
+(2, '2026-04-01', '2026-05-01', 285000.00, 'Pending'),   -- no utilities linked
 -- Lease 3 (Carla, monthly, rent=70000)
-(3, '2026-02-01', '2026-02-15', 77800.00, 'Paid'),       -- + utilities 7800
-(3, '2026-03-01', '2026-03-15', 70000.00, 'Overdue'),    -- no utilities linked
+(3, '2026-02-01', '2026-03-01', 77800.00, 'Paid'),       -- + utilities 7800
+(3, '2026-03-01', '2026-04-01', 70000.00, 'Overdue'),    -- no utilities linked
 -- Lease 4 (Derek, semi-annual, rent=360000)
-(4, '2026-02-15', '2026-03-01', 364900.00, 'Paid'),      -- + utilities 4900
+(4, '2026-02-15', '2026-03-15', 364900.00, 'Paid'),      -- + utilities 4900
 -- Lease 5 (Elena, annual, rent=1320000)
-(5, '2026-03-01', '2026-03-15', 1335700.00, 'Pending');  -- + utilities 15700
+(5, '2026-03-01', '2026-04-01', 1335700.00, 'Pending');  -- + utilities 15700
 
 -- Payments (amounts match corrected invoice totals)
 INSERT INTO payment (invoice_id, amount, payment_date, due_date, status)
 VALUES
-(1,  91800.00,  '2025-12-10', '2025-12-15', 'Completed'),
-(2,  91400.00,  '2026-01-12', '2026-01-15', 'Completed'),
-(3,  85000.00,  '2026-02-14', '2026-02-15', 'Completed'),
-(5,  310000.00, '2026-01-14', '2026-01-15', 'Completed'),
-(7,  77800.00,  '2026-02-13', '2026-02-15', 'Completed'),
-(9,  364900.00, '2026-02-28', '2026-03-01', 'Completed'),
+(1,  91800.00,  '2025-12-20', '2026-01-01', 'Completed'),
+(2,  91400.00,  '2026-01-25', '2026-02-01', 'Completed'),
+(3,  85000.00,  '2026-02-22', '2026-03-01', 'Completed'),
+(5,  310000.00, '2026-01-28', '2026-02-01', 'Completed'),
+(7,  77800.00,  '2026-02-25', '2026-03-01', 'Completed'),
+(9,  364900.00, '2026-03-10', '2026-03-15', 'Completed'),
 -- Partial payment for overdue invoice
-(8,  35000.00,  '2026-03-14', '2026-03-15', 'Completed');
+(8,  35000.00,  '2026-03-20', '2026-04-01', 'Completed');
 
 -- Utility Usage (linked to store units and optionally to invoices)
 INSERT INTO utility_usage (unit_id, invoice_id, type, usage_amount, billing_month, amount)

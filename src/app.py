@@ -1,3 +1,4 @@
+import click
 from flask import Flask
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
@@ -50,6 +51,13 @@ def create_app():
     app.register_blueprint(utilities_bp)
     app.register_blueprint(maintenance_bp)
     app.register_blueprint(notifications_bp)
+
+    @app.cli.command('generate-invoices')
+    def cli_generate_invoices():
+        """Generate invoices for all active leases that are due."""
+        from services.invoice_service import generate_all_due_invoices
+        generated = generate_all_due_invoices()
+        click.echo(f'{len(generated)} invoice(s) generated.')
 
     return app
 

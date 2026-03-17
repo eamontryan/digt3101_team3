@@ -6,9 +6,22 @@ from models import db
 from models.invoice import Invoice
 from models.payment import Payment
 from models.lease import Lease
+from services.invoice_service import generate_all_due_invoices
 from datetime import date
 
 billing_bp = Blueprint('billing', __name__, url_prefix='/billing')
+
+
+@billing_bp.route('/generate-invoices', methods=['POST'])
+@login_required
+@role_required('Admin')
+def generate_invoices():
+    generated = generate_all_due_invoices()
+    if generated:
+        flash(f'{len(generated)} invoice(s) generated successfully.', 'success')
+    else:
+        flash('No invoices are due at this time.', 'info')
+    return redirect(url_for('billing.invoices'))
 
 
 @billing_bp.route('/invoices')
