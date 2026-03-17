@@ -1,0 +1,46 @@
+{% extends "layout/base.html" %}
+{% block title %}Unit {{ unit.location }} - REMS{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('store_units.list_units') }}">Units</a></li>
+        <li class="breadcrumb-item active">{{ unit.location }}</li>
+    </ol>
+</nav>
+
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">{{ unit.location }}</h4>
+        <span class="badge fs-6 {% if unit.availability == 'Available' %}bg-success{% elif unit.availability == 'Occupied' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+            {{ unit.availability }}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table">
+                    <tr><th>Mall</th><td>{{ unit.mall.name }}</td></tr>
+                    <tr><th>Size</th><td>{{ unit.size }} sqm</td></tr>
+                    <tr><th>Monthly Rate</th><td>{{ "%.2f"|format(unit.rental_rate) }}</td></tr>
+                    <tr><th>Classification</th><td>{{ unit.classification_tier or 'N/A' }}</td></tr>
+                    <tr><th>Business Purpose</th><td>{{ unit.business_purpose or 'N/A' }}</td></tr>
+                    <tr><th>Contact</th><td>{{ unit.contact_info or 'N/A' }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        {% if current_user.role == 'Admin' %}
+        <a href="{{ url_for('store_units.edit', unit_id=unit.unit_id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-pencil"></i> Edit
+        </a>
+        {% endif %}
+        {% if unit.availability == 'Available' and current_user.role == 'Tenant' %}
+        <a href="{{ url_for('appointments.schedule') }}" class="btn btn-primary">
+            <i class="bi bi-calendar-plus"></i> Schedule Viewing
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
