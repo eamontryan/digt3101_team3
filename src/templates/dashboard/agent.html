@@ -1,0 +1,61 @@
+{% extends "layout/base.html" %}
+{% block title %}Agent Dashboard - REMS{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Agent Dashboard</h2>
+<p class="text-muted">Welcome back, {{ current_user.name }}!</p>
+
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Upcoming Appointments</strong>
+        <a href="{{ url_for('appointments.schedule') }}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus"></i> Schedule New
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date & Time</th>
+                    <th>Tenant</th>
+                    <th>Unit</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for appt in upcoming_appointments %}
+                <tr>
+                    <td>{{ appt.date_time.strftime('%b %d, %Y %I:%M %p') }}</td>
+                    <td>{{ appt.tenant.name }}</td>
+                    <td>{{ appt.unit.location }} ({{ appt.unit.mall.name }})</td>
+                    <td><span class="badge bg-info">{{ appt.status }}</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">No upcoming appointments</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row mt-4 g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header"><strong>Quick Actions</strong></div>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('store_units.search') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-search"></i> Search Units
+                </a>
+                <a href="{{ url_for('applications.list_applications') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-file-earmark-text"></i> Review Applications
+                </a>
+                <a href="{{ url_for('leases.create') }}" class="list-group-item list-group-item-action">
+                    <i class="bi bi-file-earmark-plus"></i> Create Lease
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
