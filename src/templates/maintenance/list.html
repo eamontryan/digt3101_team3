@@ -16,6 +16,9 @@
         <thead class="table-light">
             <tr>
                 <th>ID</th>
+                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                <th>User / Unit</th>
+                {% endif %}
                 <th>Category</th>
                 <th>Description</th>
                 <th>Priority</th>
@@ -29,17 +32,31 @@
         <tbody>
             {% for req in requests %}
             <tr>
-                <td>{{ req.request_id }}</td>
+                <td>
+                    <!-- Clickable request ID -->
+                    <a href="{{ url_for('maintenance.request_detail', request_id=req.request_id) }}" class="fw-semibold text-decoration-none">
+                        #{{ req.request_id }}
+                    </a>
+                </td>
+
+                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                <td>
+                    {{ req.lease.tenant.name }}<br>
+                    <small class="text-muted">
+                        Unit {{ req.lease.unit.location }}
+                        {% if req.lease.unit.mall %} - {{ req.lease.unit.mall.name }}{% endif %}
+                    </small>
+                </td>
+                {% endif %}
+
                 <td>{{ req.category }}</td>
                 <td>{{ req.description[:80] if req.description else '' }}{% if req.description and req.description|length > 80 %}...{% endif %}</td>
                 <td>
-                    <!-- Priority badge -->
                     <span class="badge {% if req.priority == 'Urgent' %}bg-danger{% elif req.priority == 'High' %}bg-warning text-dark{% elif req.priority == 'Medium' %}bg-info{% else %}bg-secondary{% endif %}">
                         {{ req.priority }}
                     </span>
                 </td>
                 <td>
-                    <!-- Status badge -->
                     <span class="badge {% if req.status == 'Open' %}bg-primary{% elif req.status == 'In Progress' %}bg-info{% elif req.status == 'Resolved' %}bg-success{% elif req.status == 'Rejected' %}bg-secondary{% elif req.status == 'Misuse' %}bg-danger{% else %}bg-dark{% endif %}">
                         {{ req.status }}
                     </span>
@@ -58,6 +75,7 @@
                     <span class="text-muted">No</span>
                     {% endif %}
                 </td>
+
                 {% if current_user.role in ('Admin', 'LeasingAgent') %}
                 <td>
                     {% if req.status not in ('Resolved', 'Misuse') %}
@@ -71,13 +89,24 @@
                         </select>
                         <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
                     </form>
+
+                    {% if current_user.role == 'Admin' %}
+                    <form method="POST" action="{{ url_for('maintenance.update_status', request_id=req.request_id) }}" class="d-inline ms-1">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="action" value="misuse">
+                        <input type="number" step="0.01" min="0" name="charge_amount" class="form-control form-control-sm d-inline-block w-auto" placeholder="Charge">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Mark Misuse</button>
+                    </form>
+                    {% endif %}
                     {% endif %}
                 </td>
                 {% endif %}
             </tr>
             {% else %}
             <tr>
-                <td colspan="7" class="text-center text-muted py-4">No maintenance requests</td>
+                <td colspan="{% if current_user.role in ('Admin', 'LeasingAgent') %}8{% else %}6{% endif %}" class="text-center text-muted py-4">
+                    No maintenance requests
+                </td>
             </tr>
             {% endfor %}
         </tbody>
