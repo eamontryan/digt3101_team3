@@ -28,7 +28,7 @@
         </thead>
         <tbody>
             {% for app in applications %}
-            <tr>
+            <tr role="button" data-bs-toggle="modal" data-bs-target="#appModal{{ app.application_id }}" style="cursor:pointer;">
                 <td>{{ app.application_id }}</td>
                 <td>{{ app.tenant.name }}</td>
                 <td>{{ app.unit.location }} ({{ app.unit.mall.name }})</td>
@@ -64,4 +64,152 @@
         </tbody>
     </table>
 </div>
+
+<!-- Application Detail Modals -->
+{% for app in applications %}
+<div class="modal fade" id="appModal{{ app.application_id }}" tabindex="-1" aria-labelledby="appModalLabel{{ app.application_id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="appModalLabel{{ app.application_id }}">
+                    <i class="bi bi-file-earmark-text"></i> Application #{{ app.application_id }}
+                    <span class="badge {% if app.status == 'Approved' %}bg-success{% elif app.status == 'Pending' %}bg-warning text-dark{% elif app.status == 'Rejected' %}bg-danger{% else %}bg-secondary{% endif %} ms-2">
+                        {{ app.status }}
+                    </span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+                {# ---- READ-ONLY view for Approved / Rejected / Withdrawn ---- #}
+                {% if app.status != 'Pending' %}
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th class="text-muted" style="width:35%">Tenant</th>
+                        <td>{{ app.tenant.name }} ({{ app.tenant.email }})</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Unit</th>
+                        <td>{{ app.unit.location }} &mdash; {{ app.unit.mall.name }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Unit Size</th>
+                        <td>{{ "%.2f"|format(app.unit.size) }} m²</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Monthly Rent</th>
+                        <td>{{ "%.2f"|format(app.unit.rental_rate) }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Submitted</th>
+                        <td>{{ app.submission_date.strftime('%b %d, %Y') }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Status</th>
+                        <td>
+                            <span class="badge {% if app.status == 'Approved' %}bg-success{% elif app.status == 'Rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                {{ app.status }}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+
+                <hr>
+                <h6><i class="bi bi-paperclip"></i> Submitted Documents</h6>
+                {% if app.documents %}
+                <ul class="list-group list-group-flush">
+                    {% for doc in app.documents %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-file-earmark"></i> {{ doc.file_name }}
+                            <small class="text-muted ms-2">{{ doc.file_type | upper }}</small>
+                        </div>
+                        {% if doc.file_size %}
+                        <span class="badge bg-light text-dark">{{ "%.1f"|format(doc.file_size / 1024) }} KB</span>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">No documents were submitted.</p>
+                {% endif %}
+
+                {# ---- EDITABLE view for Pending ---- #}
+                {% else %}
+                <form method="POST" action="{{ url_for('applications.update', app_id=app.application_id) }}" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tenant</label>
+                        <input type="text" class="form-control" value="{{ app.tenant.name }} ({{ app.tenant.email }})" disabled>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Unit</label>
+                        <select name="unit_id" class="form-select" required>
+                            <option value="{{ app.unit.unit_id }}" selected>{{ app.unit.mall.name }} - {{ app.unit.location }} ({{ "%.2f"|format(app.unit.rental_rate) }}/month)</option>
+                            {% for unit in available_units %}
+                                {% if unit.unit_id != app.unit.unit_id %}
+                                <option value="{{ unit.unit_id }}">{{ unit.mall.name }} - {{ unit.location }} ({{ "%.2f"|format(unit.rental_rate) }}/month)</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Submitted</label>
+                        <input type="text" class="form-control" value="{{ app.submission_date.strftime('%b %d, %Y') }}" disabled>
+                    </div>
+
+                    <hr>
+                    <h6><i class="bi bi-paperclip"></i> Current Documents</h6>
+                    {% if app.documents %}
+                    <ul class="list-group list-group-flush mb-3">
+                        {% for doc in app.documents %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-file-earmark"></i> {{ doc.file_name }}
+                                <small class="text-muted ms-2">{{ doc.file_type | upper }}</small>
+                            </div>
+                            {% if doc.file_size %}
+                            <span class="badge bg-light text-dark">{{ "%.1f"|format(doc.file_size / 1024) }} KB</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">No documents submitted yet.</p>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Upload Additional Documents</label>
+                        <input type="file" name="documents" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                        <div class="form-text">PDF, JPG, PNG, DOC accepted.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-arrow-clockwise"></i> Update Application
+                    </button>
+                </form>
+                {% endif %}
+
+            </div>
+            <div class="modal-footer">
+                {% if current_user.role in ('Admin', 'LeasingAgent') and app.status == 'Pending' %}
+                <form method="POST" action="{{ url_for('applications.approve', app_id=app.application_id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-success">Approve</button>
+                </form>
+                <form method="POST" action="{{ url_for('applications.reject', app_id=app.application_id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Reject</button>
+                </form>
+                {% endif %}
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
 {% endblock %}
