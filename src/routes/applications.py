@@ -7,6 +7,8 @@ from models import db
 from models.rental_application import RentalApplication
 from models.application_document import ApplicationDocument
 from models.store_unit import StoreUnit
+from models.user import User
+from services.notification_service import create_notification
 from datetime import date
 
 applications_bp = Blueprint('applications', __name__, url_prefix='/applications')
@@ -82,6 +84,17 @@ def approve(app_id):
     application = RentalApplication.query.get_or_404(app_id)
     application.status = 'Approved'
     db.session.commit()
+
+    unit = StoreUnit.query.get(application.unit_id)
+    create_notification(
+        recipient_id=application.tenant_id,
+        notif_type='General',
+        title='Application Approved',
+        message=f'Your rental application for {unit.location} has been approved.',
+        related_entity='rental_application',
+        related_id=application.application_id
+    )
+
     flash('Application approved.', 'success')
     return redirect(url_for('applications.list_applications'))
 
@@ -93,5 +106,16 @@ def reject(app_id):
     application = RentalApplication.query.get_or_404(app_id)
     application.status = 'Rejected'
     db.session.commit()
+
+    unit = StoreUnit.query.get(application.unit_id)
+    create_notification(
+        recipient_id=application.tenant_id,
+        notif_type='General',
+        title='Application Rejected',
+        message=f'Your rental application for {unit.location} has been rejected.',
+        related_entity='rental_application',
+        related_id=application.application_id
+    )
+
     flash('Application rejected.', 'info')
     return redirect(url_for('applications.list_applications'))
