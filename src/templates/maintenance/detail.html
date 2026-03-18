@@ -1,0 +1,67 @@
+{% extends "layout/base.html" %}
+{% block title %}Maintenance Request Details - REMS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Maintenance Request #{{ req.request_id }}</h2>
+    <a href="{{ url_for('maintenance.list_requests') }}" class="btn btn-outline-secondary">Back</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <strong>User</strong>
+                <div>{{ req.lease.tenant.name }}</div>
+            </div>
+            <div class="col-md-6">
+                <strong>Email</strong>
+                <div>{{ req.lease.tenant.email }}</div>
+            </div>
+            <div class="col-md-6">
+                <strong>Unit</strong>
+                <div>{{ req.lease.unit.location }}</div>
+            </div>
+            <div class="col-md-6">
+                <strong>Mall</strong>
+                <div>{{ req.lease.unit.mall.name if req.lease.unit.mall else 'N/A' }}</div>
+            </div>
+            <div class="col-md-6">
+                <strong>Category</strong>
+                <div>{{ req.category }}</div>
+            </div>
+            <div class="col-md-6">
+                <strong>Priority</strong>
+                <div>{{ req.priority }}</div>
+            </div>
+            <div class="col-md-6">
+                <strong>Status</strong>
+                <div>{{ req.status }}</div>
+            </div>
+            <div class="col-md-6">
+                <strong>Submitted</strong>
+                <div>{{ req.created_at.strftime('%Y-%m-%d %I:%M %p') if req.created_at else 'N/A' }}</div>
+            </div>
+            <div class="col-12">
+                <!-- Full request description -->
+                <strong>Description</strong>
+                <div class="border rounded p-3 bg-light">{{ req.description or 'No description provided.' }}</div>
+            </div>
+            <div class="col-md-6">
+                <strong>Misuse</strong>
+                <div>{{ 'Yes' if req.misuse_flag else 'No' }}</div>
+            </div>
+            <div class="col-md-6">
+                <strong>Charge Amount</strong>
+                <div>
+                    {% if req.charge_amount %}
+                        ${{ "{:,.2f}".format(req.charge_amount|float) }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

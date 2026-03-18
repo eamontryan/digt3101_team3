@@ -218,7 +218,7 @@ CREATE TABLE maintenance_request (
     category      VARCHAR(100) NOT NULL,
     description   TEXT COMMENT 'Tenant description of the issue',
     priority      ENUM('Low', 'Medium', 'High', 'Urgent') NOT NULL DEFAULT 'Medium',
-    status        ENUM('Open', 'In Progress', 'Resolved', 'Closed', 'Rejected') NOT NULL DEFAULT 'Open',
+    status        ENUM('Open', 'In Progress', 'Resolved', 'Rejected', 'Misuse') NOT NULL DEFAULT 'Open',
     misuse_flag   TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = flagged as misuse',
     charge_amount DECIMAL(12,2) DEFAULT NULL COMMENT 'Amount charged to tenant for misuse-related repairs',
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
