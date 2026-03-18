@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
+from sqlalchemy import case
 from routes import role_required
 from models import db
 from models.maintenance_request import MaintenanceRequest
@@ -13,12 +14,36 @@ maintenance_bp = Blueprint('maintenance', __name__, url_prefix='/maintenance')
 @maintenance_bp.route('/')
 @login_required
 def list_requests():
+    # Order statuses so open/in progress appear first
+    status_order = case(
+        (MaintenanceRequest.status == 'Open', 1),
+        (MaintenanceRequest.status == 'In Progress', 2),
+        (MaintenanceRequest.status == 'Rejected', 3),
+        (MaintenanceRequest.status == 'Resolved', 4),
+        (MaintenanceRequest.status == 'Misuse', 5),
+        else_=6
+    )
+
+    # Higher priority requests should appear closer to the top
+    priority_order = case(
+        (MaintenanceRequest.priority == 'Urgent', 1),
+        (MaintenanceRequest.priority == 'High', 2),
+        (MaintenanceRequest.priority == 'Medium', 3),
+        (MaintenanceRequest.priority == 'Low', 4),
+        else_=5
+    )
+
+    base_query = MaintenanceRequest.query.join(Lease)
+
+    # Tenants should only see their own requests
     if current_user.role == 'Tenant':
-        requests = MaintenanceRequest.query.join(Lease).filter(
-            Lease.tenant_id == current_user.user_id
-        ).order_by(MaintenanceRequest.created_at.desc()).all()
-    else:
-        requests = MaintenanceRequest.query.order_by(MaintenanceRequest.created_at.desc()).all()
+        base_query = base_query.filter(Lease.tenant_id == current_user.user_id)
+
+    requests = base_query.order_by(
+        status_order.asc(),
+        priority_order.asc(),
+        MaintenanceRequest.created_at.desc()
+    ).all()
 
     return render_template('maintenance/list.html', requests=requests)
 
@@ -39,7 +64,11 @@ def submit():
         flash('Maintenance request submitted.', 'success')
         return redirect(url_for('maintenance.list_requests'))
 
-    leases = Lease.query.filter_by(tenant_id=current_user.user_id, status='Active').all()
+    leases = Lease.query.filter_by(
+        tenant_id=current_user.user_id,
+        status='Active'
+    ).order_by(Lease.start_date.desc()).all()
+
     return render_template('maintenance/submit.html', leases=leases)
 
 
@@ -53,15 +82,14 @@ def update_status(request_id):
 
     if request.form.get('misuse_flag'):
         maint_request.misuse_flag = True
-        maint_request.charge_amount = float(request.form.get('charge_amount', 0))
+        maint_request.charge_amount = float(request.form.get('charge_amount', 0) or 0)
 
     db.session.commit()
 
-    # Recalculate invoice total if this charge is linked to an invoice
+    # Recalculate invoice if this request is linked to one
     if maint_request.invoice_id and maint_request.invoice:
         recalculate_invoice_total(maint_request.invoice)
 
-    # Notify tenant
     lease = Lease.query.get(maint_request.lease_id)
     create_notification(
         recipient_id=lease.tenant_id,
