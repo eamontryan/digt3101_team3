@@ -1,4 +1,5 @@
 import click
+import datetime as _dt
 from flask import Flask, session, redirect, request, url_for, flash
 from flask_login import LoginManager, current_user, login_required
 from flask_bcrypt import Bcrypt
@@ -10,6 +11,7 @@ from models.user import User
 login_manager = LoginManager()
 bcrypt = Bcrypt()
 csrf = CSRFProtect()
+_last_daily_check = None
 
 
 def create_app():
@@ -52,6 +54,19 @@ def create_app():
     app.register_blueprint(maintenance_bp)
     app.register_blueprint(notifications_bp)
 
+    @app.before_request
+    def daily_checks():
+        global _last_daily_check
+        today = _dt.date.today()
+        if _last_daily_check == today:
+            return
+        _last_daily_check = today
+        from services.invoice_service import check_overdue_invoices, generate_all_due_invoices
+        from services.lease_service import process_lease_renewals
+        check_overdue_invoices()
+        process_lease_renewals()
+        generate_all_due_invoices()
+
     @app.context_processor
     def inject_active_role():
         if current_user.is_authenticated:
@@ -81,6 +96,20 @@ def create_app():
         from services.invoice_service import generate_all_due_invoices
         generated = generate_all_due_invoices()
         click.echo(f'{len(generated)} invoice(s) generated.')
+
+    @app.cli.command('check-overdue')
+    def cli_check_overdue():
+        """Mark overdue invoices and send notifications."""
+        from services.invoice_service import check_overdue_invoices
+        check_overdue_invoices()
+        click.echo('Overdue invoice check completed.')
+
+    @app.cli.command('process-renewals')
+    def cli_process_renewals():
+        """Process automatic lease renewals for leases expiring within 30 days."""
+        from services.lease_service import process_lease_renewals
+        process_lease_renewals()
+        click.echo('Lease renewal processing completed.')
 
     return app
 

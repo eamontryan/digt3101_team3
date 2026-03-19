@@ -45,9 +45,13 @@
                         <option value="Anchor" {% if filters.get('classification_tier') == 'Anchor' %}selected{% endif %}>Anchor</option>
                     </select>
                 </div>
-                <div class="col-md-1 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-search"></i>
+                <div class="col-md-3">
+                    <label class="form-label">Business Purpose</label>
+                    <input type="text" name="business_purpose" class="form-control" placeholder="e.g. Retail" value="{{ filters.get('business_purpose', '') }}">
+                </div>
+                <div class="col-auto d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Search
                     </button>
                 </div>
             </div>
@@ -66,6 +70,7 @@
                 <p class="mb-1"><strong>Rate:</strong> {{ "{:,.2f}".format(unit.rental_rate) }}/month</p>
                 <p class="mb-1"><strong>Tier:</strong> {{ unit.classification_tier or 'N/A' }}</p>
                 <p class="mb-1"><strong>Purpose:</strong> {{ unit.business_purpose or 'N/A' }}</p>
+                <p class="mb-1"><strong>Contact:</strong> {{ unit.contact_info or 'N/A' }}</p>
                 <span class="badge {% if unit.availability == 'Available' %}bg-success{% elif unit.availability == 'Occupied' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
                     {{ unit.availability }}
                 </span>

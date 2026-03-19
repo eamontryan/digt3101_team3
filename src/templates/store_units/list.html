@@ -46,9 +46,6 @@
                 </td>
                 <td>
                     <a href="{{ url_for('store_units.detail', unit_id=unit.unit_id) }}" class="btn btn-sm btn-outline-primary">View</a>
-                    {% if active_role == 'Admin' %}
-                    <a href="{{ url_for('store_units.edit', unit_id=unit.unit_id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

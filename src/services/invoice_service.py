@@ -131,3 +131,52 @@ def generate_all_due_invoices():
             issue_date = issue_date + relativedelta(months=cycle_months)
 
     return generated
+
+
+def check_overdue_invoices():
+    """Mark pending invoices past due date as Overdue and notify tenants/admins."""
+    from services.notification_service import create_notification
+    from models.user import User
+
+    today = date.today()
+    overdue = Invoice.query.filter(
+        Invoice.status == 'Pending',
+        Invoice.due_date < today
+    ).all()
+
+    if not overdue:
+        return
+
+    admin_ids = [u.user_id for u in User.query.filter(
+        User.role.in_(['Admin', 'Dev']),
+        User.status == 'Active'
+    ).all()]
+
+    for invoice in overdue:
+        invoice.status = 'Overdue'
+
+        total_paid = sum(
+            p.amount for p in invoice.payments if p.status == 'Completed'
+        )
+        balance = invoice.total_amount - total_paid
+
+        create_notification(
+            recipient_id=invoice.lease.tenant_id,
+            notif_type='Payment Overdue',
+            title='Invoice Overdue',
+            message=f'Invoice #{invoice.invoice_id} for {invoice.lease.unit.location} is overdue. Balance: ${balance:,.2f}.',
+            related_entity='invoice',
+            related_id=invoice.invoice_id
+        )
+
+        for admin_id in admin_ids:
+            create_notification(
+                recipient_id=admin_id,
+                notif_type='Payment Overdue',
+                title='Tenant Invoice Overdue',
+                message=f'Invoice #{invoice.invoice_id} for {invoice.lease.tenant.name} ({invoice.lease.unit.location}) is overdue. Balance: ${balance:,.2f}.',
+                related_entity='invoice',
+                related_id=invoice.invoice_id
+            )
+
+    db.session.commit()

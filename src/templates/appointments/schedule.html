@@ -26,6 +26,7 @@
                         <option value="{{ agent.user_id }}">{{ agent.name }} ({{ agent.availability_schedule or 'Schedule N/A' }})</option>
                         {% endfor %}
                     </select>
+                    <div class="form-text" id="agent-availability"></div>
                 </div>
                 {% if tenants %}
                 <div class="col-md-6">
@@ -54,4 +55,18 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var agentSchedules = {
+    {% for agent in agents %}
+    "{{ agent.user_id }}": "{{ agent.availability_schedule or 'No schedule available' }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+};
+document.querySelector('[name="agent_id"]').addEventListener('change', function() {
+    var el = document.getElementById('agent-availability');
+    el.textContent = this.value ? 'Availability: ' + agentSchedules[this.value] : '';
+});
+</script>
 {% endblock %}

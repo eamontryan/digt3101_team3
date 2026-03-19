@@ -16,7 +16,7 @@ class StoreUnit(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now(), onupdate=db.func.now())
 
-    appointments = db.relationship('Appointment', backref='unit', lazy=True)
-    rental_applications = db.relationship('RentalApplication', backref='unit', lazy=True)
-    leases = db.relationship('Lease', backref='unit', lazy=True)
-    utility_usages = db.relationship('UtilityUsage', backref='unit', lazy=True)
+    appointments = db.relationship('Appointment', backref='unit', lazy=True, passive_deletes=True)
+    rental_applications = db.relationship('RentalApplication', backref='unit', lazy=True, passive_deletes=True)
+    leases = db.relationship('Lease', backref='unit', lazy=True, passive_deletes=True)
+    utility_usages = db.relationship('UtilityUsage', backref='unit', lazy=True, passive_deletes=True)

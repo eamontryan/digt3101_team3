@@ -4,6 +4,7 @@ from routes import role_required
 from models import db
 from models.store_unit import StoreUnit
 from models.mall import Mall
+from models.lease import Lease
 
 store_units_bp = Blueprint('store_units', __name__, url_prefix='/units')
 
@@ -91,3 +92,23 @@ def edit(unit_id):
         return redirect(url_for('store_units.detail', unit_id=unit.unit_id))
 
     return render_template('store_units/form.html', malls=malls, unit=unit)
+
+
+@store_units_bp.route('/<int:unit_id>/delete', methods=['POST'])
+@login_required
+@role_required('Admin')
+def delete(unit_id):
+    unit = StoreUnit.query.get_or_404(unit_id)
+
+    blocking_leases = Lease.query.filter(
+        Lease.unit_id == unit_id,
+        Lease.status.in_(['Active', 'Pending'])
+    ).count()
+    if blocking_leases > 0:
+        flash('Cannot delete unit: it has active or pending leases. Terminate them first.', 'danger')
+        return redirect(url_for('store_units.detail', unit_id=unit_id))
+
+    db.session.delete(unit)
+    db.session.commit()
+    flash('Store unit deleted successfully.', 'success')
+    return redirect(url_for('store_units.list_units'))

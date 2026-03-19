@@ -6,4 +6,5 @@ Flask-WTF
 PyMySQL
 python-dotenv
 python-dateutil
+fpdf2
 pytest

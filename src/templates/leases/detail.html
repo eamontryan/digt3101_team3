@@ -2,12 +2,9 @@
 {% block title %}Lease #{{ lease.lease_id }} - REMS{% endblock %}
 
 {% block content %}
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('leases.list_leases') }}">Leases</a></li>
-        <li class="breadcrumb-item active">Lease #{{ lease.lease_id }}</li>
-    </ol>
-</nav>
+<a href="{{ url_for('leases.list_leases') }}" class="btn btn-outline-secondary mb-3">
+    <i class="bi bi-arrow-left"></i> Back to Leases
+</a>
 
 <div class="card shadow-sm mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -188,8 +185,36 @@
 {% endif %}
 
 <div class="mt-3">
-    <a href="{{ url_for('leases.list_leases') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left"></i> Back to Leases
+    <a href="{{ url_for('leases.download_agreement', lease_id=lease.lease_id) }}" class="btn btn-primary">
+        <i class="bi bi-file-earmark-pdf"></i> Download PDF
     </a>
+    {% if active_role in ('Admin', 'LeasingAgent') and lease.status in ('Active', 'Pending') %}
+    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#terminateModal">
+        <i class="bi bi-x-circle"></i> Terminate Lease
+    </button>
+    {% endif %}
 </div>
+
+{% if active_role in ('Admin', 'LeasingAgent') and lease.status in ('Active', 'Pending') %}
+<div class="modal fade" id="terminateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Lease Termination</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to terminate Lease #{{ lease.lease_id }} for <strong>{{ lease.tenant.name }}</strong> at <strong>{{ lease.unit.location }}</strong>? The unit will be marked as available.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('leases.terminate', lease_id=lease.lease_id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Terminate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

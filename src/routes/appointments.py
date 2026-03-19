@@ -1,3 +1,4 @@
+import re
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from routes import role_required, get_active_role
@@ -7,6 +8,64 @@ from models.store_unit import StoreUnit
 from models.user import User
 from services.notification_service import create_notification
 from datetime import datetime
+
+
+# Map day abbreviations to Python weekday numbers (0=Mon, 6=Sun)
+_DAY_MAP = {'mon': 0, 'tue': 1, 'wed': 2, 'thu': 3, 'fri': 4, 'sat': 5, 'sun': 6}
+
+
+def _parse_time(s):
+    """Parse time strings like '9AM', '10:30AM', '6PM' into (hour, minute)."""
+    s = s.strip().upper().replace('.', '')
+    m = re.match(r'^(\d{1,2}):?(\d{2})?\s*(AM|PM)$', s)
+    if not m:
+        return None
+    hour = int(m.group(1))
+    minute = int(m.group(2) or 0)
+    if m.group(3) == 'PM' and hour != 12:
+        hour += 12
+    elif m.group(3) == 'AM' and hour == 12:
+        hour = 0
+    return hour * 60 + minute
+
+
+def check_agent_availability(agent, appt_start, appt_end):
+    """Check if the appointment falls within the agent's availability schedule.
+    Returns True if available or if schedule can't be parsed. Returns False if outside schedule."""
+    schedule = agent.availability_schedule
+    if not schedule:
+        return True  # no schedule set = always available
+
+    # Parse patterns like "Mon-Fri 9AM-6PM", "Tue-Sat 8AM-5PM", "Mon-Sat 10AM-7PM"
+    m = re.match(r'(\w{3})-(\w{3})\s+(.+)-(.+)', schedule.strip(), re.IGNORECASE)
+    if not m:
+        return True  # can't parse = allow
+
+    day_start = _DAY_MAP.get(m.group(1).lower()[:3])
+    day_end = _DAY_MAP.get(m.group(2).lower()[:3])
+    time_start = _parse_time(m.group(3))
+    time_end = _parse_time(m.group(4))
+
+    if day_start is None or day_end is None or time_start is None or time_end is None:
+        return True  # can't parse = allow
+
+    # Check day of week
+    appt_day = appt_start.weekday()
+    if day_start <= day_end:
+        day_ok = day_start <= appt_day <= day_end
+    else:
+        day_ok = appt_day >= day_start or appt_day <= day_end
+
+    if not day_ok:
+        return False
+
+    # Check time range
+    start_mins = appt_start.hour * 60 + appt_start.minute
+    end_mins = appt_end.hour * 60 + appt_end.minute
+    if start_mins < time_start or end_mins > time_end:
+        return False
+
+    return True
 
 appointments_bp = Blueprint('appointments', __name__, url_prefix='/appointments')
 
@@ -41,7 +100,22 @@ def schedule():
         date_time = datetime.strptime(request.form['date_time'], '%Y-%m-%dT%H:%M')
         end_time = datetime.strptime(request.form['end_time'], '%Y-%m-%dT%H:%M')
 
+        # Validate times
+        if end_time <= date_time:
+            flash('End time must be after start time.', 'danger')
+            return redirect(url_for('appointments.schedule'))
+
+        if date_time <= datetime.now():
+            flash('Appointment must be scheduled in the future.', 'danger')
+            return redirect(url_for('appointments.schedule'))
+
         tenant_id = current_user.user_id if get_active_role() == 'Tenant' else int(request.form['tenant_id'])
+
+        # Check agent availability schedule
+        agent = User.query.get(agent_id)
+        if not check_agent_availability(agent, date_time, end_time):
+            flash(f'The selected agent is not available at that time. Their schedule is: {agent.availability_schedule}', 'danger')
+            return redirect(url_for('appointments.schedule'))
 
         # Check for double-booking (agent)
         agent_conflict = Appointment.query.filter(
@@ -90,9 +164,18 @@ def schedule():
         flash('Appointment scheduled successfully.', 'success')
         return redirect(url_for('appointments.list_appointments'))
 
-    agents = User.query.filter_by(role='LeasingAgent', status='Active').all()
+    agents = User.query.filter(
+        User.status == 'Active',
+        User.role.in_(['LeasingAgent', 'Dev'])
+    ).all()
     units = StoreUnit.query.filter_by(availability='Available').all()
-    tenants = User.query.filter_by(role='Tenant', status='Active').all() if get_active_role() != 'Tenant' else []
+    if get_active_role() != 'Tenant':
+        tenants = User.query.filter(
+            User.status == 'Active',
+            User.role.in_(['Tenant', 'Dev'])
+        ).all()
+    else:
+        tenants = []
 
     return render_template('appointments/schedule.html', agents=agents, units=units, tenants=tenants)
 

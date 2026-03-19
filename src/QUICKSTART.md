@@ -112,6 +112,31 @@ pip freeze > requirements.txt
 deactivate
 ```
 
+## Flask CLI Commands
+
+These commands can be run from the `src/` directory with the virtual environment activated (at the same time the app is running on another terminal). They are also run **automatically** on the first request after each server start, so you don't need to run them manually unless you want to trigger them on demand or don't want to restart the server.
+
+```bash
+# Generate invoices for all active leases that are due for billing
+flask generate-invoices
+
+# Mark overdue invoices (past due date) and send notifications to tenants and admins
+flask check-overdue
+
+# Process automatic lease renewals for leases expiring within 30 days
+flask process-renewals
+```
+
+### Automatic Daily Checks
+
+The following tasks run automatically on the **first request of each day** (or on server restart):
+
+1. **Overdue detection** — Invoices with `status=Pending` and `due_date` in the past are marked as `Overdue`, and notifications are sent to the tenant and all admins.
+2. **Lease renewals** — Active leases with `auto_renew=True` expiring within 30 days are renewed. The old lease is expired, a new lease is created with the rate increase applied, and the tenant is notified.
+3. **Invoice generation** — Due invoices are generated for all active leases based on their payment cycle, consolidating rent, utility charges, and misuse fees.
+
+To re-trigger these checks, simply restart the Flask server and load any page.
+
 ## Troubleshooting
 
 | Problem | Solution |

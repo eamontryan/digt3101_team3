@@ -60,6 +60,24 @@ def submit():
         )
         db.session.add(maint_request)
         db.session.commit()
+
+        # Auto-escalate urgent requests: notify all admins (and Dev users)
+        if maint_request.priority == 'Urgent':
+            from models.user import User
+            admins = User.query.filter(
+                User.role.in_(['Admin', 'Dev']),
+                User.status == 'Active'
+            ).all()
+            for admin in admins:
+                create_notification(
+                    recipient_id=admin.user_id,
+                    notif_type='Maintenance Update',
+                    title='Urgent Maintenance Request',
+                    message=f'Urgent {maint_request.category} request submitted by {current_user.name} for {maint_request.lease.unit.location}. Immediate attention required.',
+                    related_entity='maintenance_request',
+                    related_id=maint_request.request_id
+                )
+
         flash('Maintenance request submitted.', 'success')
         return redirect(url_for('maintenance.list_requests'))
 
