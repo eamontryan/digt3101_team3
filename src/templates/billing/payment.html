@@ -12,14 +12,14 @@
                 <table class="table">
                     <tr><th>Unit</th><td>{{ invoice.lease.unit.location }}</td></tr>
                     <tr><th>Due Date</th><td>{{ invoice.due_date.strftime('%b %d, %Y') }}</td></tr>
-                    <tr><th>Total Amount</th><td>{{ "%.2f"|format(invoice.total_amount) }}</td></tr>
+                    <tr><th>Total Amount</th><td>{{ "{:,.2f}".format(invoice.total_amount) }}</td></tr>
                     <tr>
                         <th>Already Paid</th>
-                        <td>{{ "%.2f"|format(invoice.payments|sum(attribute='amount')) }}</td>
+                        <td>{{ "{:,.2f}".format(invoice.payments|sum(attribute='amount')) }}</td>
                     </tr>
                     <tr>
                         <th>Remaining</th>
-                        <td><strong>{{ "%.2f"|format(invoice.total_amount - invoice.payments|sum(attribute='amount')) }}</strong></td>
+                        <td><strong>{{ "{:,.2f}".format(invoice.total_amount - invoice.payments|sum(attribute='amount')) }}</strong></td>
                     </tr>
                 </table>
             </div>

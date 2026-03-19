@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from routes import role_required
+from routes import role_required, get_active_role
 from models import db
 from models.appointment import Appointment
 from models.store_unit import StoreUnit
@@ -21,9 +21,10 @@ def cleanup_past_appointments():
 @appointments_bp.route('/')
 @login_required
 def list_appointments():
-    if current_user.role == 'LeasingAgent':
+    role = get_active_role()
+    if role == 'LeasingAgent':
         appointments = Appointment.query.filter_by(agent_id=current_user.user_id).order_by(Appointment.date_time.desc()).all()
-    elif current_user.role == 'Tenant':
+    elif role == 'Tenant':
         appointments = Appointment.query.filter_by(tenant_id=current_user.user_id).order_by(Appointment.date_time.desc()).all()
     else:
         appointments = Appointment.query.order_by(Appointment.date_time.desc()).all()
@@ -40,7 +41,7 @@ def schedule():
         date_time = datetime.strptime(request.form['date_time'], '%Y-%m-%dT%H:%M')
         end_time = datetime.strptime(request.form['end_time'], '%Y-%m-%dT%H:%M')
 
-        tenant_id = current_user.user_id if current_user.role == 'Tenant' else int(request.form['tenant_id'])
+        tenant_id = current_user.user_id if get_active_role() == 'Tenant' else int(request.form['tenant_id'])
 
         # Check for double-booking (agent)
         agent_conflict = Appointment.query.filter(
@@ -91,7 +92,7 @@ def schedule():
 
     agents = User.query.filter_by(role='LeasingAgent', status='Active').all()
     units = StoreUnit.query.filter_by(availability='Available').all()
-    tenants = User.query.filter_by(role='Tenant', status='Active').all() if current_user.role != 'Tenant' else []
+    tenants = User.query.filter_by(role='Tenant', status='Active').all() if get_active_role() != 'Tenant' else []
 
     return render_template('appointments/schedule.html', agents=agents, units=units, tenants=tenants)
 

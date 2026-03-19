@@ -4,7 +4,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Rental Applications</h2>
-    {% if current_user.role == 'Tenant' %}
+    {% if active_role == 'Tenant' %}
     <a href="{{ url_for('applications.submit') }}" class="btn btn-primary">
         <i class="bi bi-plus"></i> Submit Application
     </a>
@@ -21,7 +21,7 @@
                 <th>Submitted</th>
                 <th>Status</th>
                 <th>Documents</th>
-                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                {% if active_role in ('Admin', 'LeasingAgent') %}
                 <th>Actions</th>
                 {% endif %}
             </tr>
@@ -39,7 +39,7 @@
                     </span>
                 </td>
                 <td>{{ app.documents|length }} file(s)</td>
-                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                {% if active_role in ('Admin', 'LeasingAgent') %}
                 <td>
                     {% if app.status == 'Pending' %}
                     <form method="POST" action="{{ url_for('applications.approve', app_id=app.application_id) }}" class="d-inline">
@@ -94,11 +94,11 @@
                     </tr>
                     <tr>
                         <th class="text-muted">Unit Size</th>
-                        <td>{{ "%.2f"|format(app.unit.size) }} m²</td>
+                        <td>{{ "{:,.2f}".format(app.unit.size) }} m²</td>
                     </tr>
                     <tr>
                         <th class="text-muted">Monthly Rent</th>
-                        <td>{{ "%.2f"|format(app.unit.rental_rate) }}</td>
+                        <td>{{ "{:,.2f}".format(app.unit.rental_rate) }}</td>
                     </tr>
                     <tr>
                         <th class="text-muted">Submitted</th>
@@ -147,10 +147,10 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Unit</label>
                         <select name="unit_id" class="form-select" required>
-                            <option value="{{ app.unit.unit_id }}" selected>{{ app.unit.mall.name }} - {{ app.unit.location }} ({{ "%.2f"|format(app.unit.rental_rate) }}/month)</option>
+                            <option value="{{ app.unit.unit_id }}" selected>{{ app.unit.mall.name }} - {{ app.unit.location }} ({{ "{:,.2f}".format(app.unit.rental_rate) }}/month)</option>
                             {% for unit in available_units %}
                                 {% if unit.unit_id != app.unit.unit_id %}
-                                <option value="{{ unit.unit_id }}">{{ unit.mall.name }} - {{ unit.location }} ({{ "%.2f"|format(unit.rental_rate) }}/month)</option>
+                                <option value="{{ unit.unit_id }}">{{ unit.mall.name }} - {{ unit.location }} ({{ "{:,.2f}".format(unit.rental_rate) }}/month)</option>
                                 {% endif %}
                             {% endfor %}
                         </select>
@@ -195,7 +195,7 @@
 
             </div>
             <div class="modal-footer">
-                {% if current_user.role in ('Admin', 'LeasingAgent') and app.status == 'Pending' %}
+                {% if active_role in ('Admin', 'LeasingAgent') and app.status == 'Pending' %}
                 <form method="POST" action="{{ url_for('applications.approve', app_id=app.application_id) }}" class="d-inline">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-success">Approve</button>

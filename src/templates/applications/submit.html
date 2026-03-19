@@ -13,7 +13,7 @@
                 <select name="unit_id" class="form-select" required>
                     <option value="">-- Select an available unit --</option>
                     {% for unit in units %}
-                    <option value="{{ unit.unit_id }}">{{ unit.mall.name }} - {{ unit.location }} ({{ "%.2f"|format(unit.rental_rate) }}/month)</option>
+                    <option value="{{ unit.unit_id }}">{{ unit.mall.name }} - {{ unit.location }} ({{ "{:,.2f}".format(unit.rental_rate) }}/month)</option>
                     {% endfor %}
                 </select>
             </div>

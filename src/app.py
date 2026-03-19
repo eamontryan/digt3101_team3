@@ -1,6 +1,6 @@
 import click
-from flask import Flask
-from flask_login import LoginManager
+from flask import Flask, session, redirect, request, url_for, flash
+from flask_login import LoginManager, current_user, login_required
 from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect
 from config import Config
@@ -51,6 +51,29 @@ def create_app():
     app.register_blueprint(utilities_bp)
     app.register_blueprint(maintenance_bp)
     app.register_blueprint(notifications_bp)
+
+    @app.context_processor
+    def inject_active_role():
+        if current_user.is_authenticated:
+            if current_user.role == 'Dev':
+                active = session.get('dev_active_role', 'Admin')
+                return {'active_role': active, 'is_dev': True}
+            return {'active_role': current_user.role, 'is_dev': False}
+        return {'active_role': None, 'is_dev': False}
+
+    @app.route('/switch-role', methods=['POST'])
+    @login_required
+    def switch_role():
+        if current_user.role != 'Dev':
+            flash('Only Dev users can switch roles.', 'danger')
+            return redirect(url_for('dashboard.index'))
+        role = request.form.get('role')
+        if role not in ('Admin', 'LeasingAgent', 'Tenant'):
+            flash('Invalid role.', 'danger')
+            return redirect(url_for('dashboard.index'))
+        session['dev_active_role'] = role
+        flash(f'Switched to {role} view.', 'info')
+        return redirect(url_for('dashboard.index'))
 
     @app.cli.command('generate-invoices')
     def cli_generate_invoices():

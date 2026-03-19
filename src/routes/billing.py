@@ -1,12 +1,13 @@
 from decimal import Decimal
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from routes import role_required
+from routes import role_required, get_active_role
 from models import db
 from models.invoice import Invoice
 from models.payment import Payment
 from models.lease import Lease
 from services.invoice_service import generate_all_due_invoices
+from services.discount_service import get_active_discount
 from datetime import date
 
 billing_bp = Blueprint('billing', __name__, url_prefix='/billing')
@@ -27,7 +28,7 @@ def generate_invoices():
 @billing_bp.route('/invoices')
 @login_required
 def invoices():
-    if current_user.role == 'Tenant':
+    if get_active_role() == 'Tenant':
         invoice_list = Invoice.query.join(Lease).filter(
             Lease.tenant_id == current_user.user_id
         ).order_by(Invoice.due_date.desc()).all()
@@ -43,7 +44,7 @@ def invoice_detail(invoice_id):
     invoice = Invoice.query.get_or_404(invoice_id)
 
     # Verify tenant can only view their own invoices
-    if current_user.role == 'Tenant' and invoice.lease.tenant_id != current_user.user_id:
+    if get_active_role() == 'Tenant' and invoice.lease.tenant_id != current_user.user_id:
         return jsonify({'error': 'Unauthorized'}), 403
 
     cycle_multipliers = {
@@ -54,6 +55,13 @@ def invoice_detail(invoice_id):
     }
     multiplier = cycle_multipliers.get(invoice.lease.payment_cycle, 1)
     rent_amount = float(invoice.lease.unit.rental_rate) * multiplier
+
+    # Check for multi-unit discount
+    discount = get_active_discount(invoice.lease.tenant_id)
+    discount_pct = float(discount.discount_pct) if discount else 0
+    discount_amount = rent_amount * discount_pct / 100
+    rent_after_discount = rent_amount - discount_amount
+
     utility_total = sum(float(u.amount) for u in invoice.utility_usages)
     misuse_charges = [
         m for m in invoice.maintenance_charges if m.misuse_flag and m.charge_amount
@@ -70,7 +78,9 @@ def invoice_detail(invoice_id):
         'status': invoice.status,
         'payment_cycle': invoice.lease.payment_cycle,
         'monthly_rate': float(invoice.lease.unit.rental_rate),
-        'rent_amount': rent_amount,
+        'rent_amount': rent_after_discount,
+        'discount_pct': discount_pct,
+        'discount_amount': discount_amount,
         'utilities': [
             {
                 'type': u.type,

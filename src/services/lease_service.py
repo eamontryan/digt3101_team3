@@ -1,14 +1,16 @@
 from models import db
+from routes import get_active_role
 from datetime import datetime
 
 
 def sign_lease(lease, user, signature_token):
     now = datetime.utcnow()
+    role = get_active_role()
 
-    if user.role == 'Tenant' and lease.tenant_id == user.user_id:
+    if role == 'Tenant' and lease.tenant_id == user.user_id:
         lease.tenant_signature = signature_token
         lease.tenant_signed_at = now
-    elif user.role in ('Admin', 'LeasingAgent'):
+    elif role in ('Admin', 'LeasingAgent'):
         lease.agent_signature = signature_token
         lease.agent_signed_at = now
 

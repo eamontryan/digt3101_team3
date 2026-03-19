@@ -84,6 +84,7 @@ The schema seeds these test accounts (all the passwords are password123):
 
 | Role | Username | Name |
 |------|----------|------|
+| **Dev** | `dev_admin` | Dev User |
 | Admin | `admin_john` | John Carter |
 | Admin | `admin_sarah` | Sarah Mitchell |
 | Leasing Agent | `agent_mike` | Mike Torres |
@@ -94,6 +95,8 @@ The schema seeds these test accounts (all the passwords are password123):
 | Tenant | `tenant_carla` | Carla Mendoza |
 | Tenant | `tenant_derek` | Derek Villanueva |
 | Tenant | `tenant_elena` | Elena Cruz |
+
+> **Dev account:** The `dev_admin` user can switch between Admin, Leasing Agent, and Tenant views using the role switcher in the navbar. This is the only account with this capability and is intended for development and testing purposes.
 
 ## Common Commands
 

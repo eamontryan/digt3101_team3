@@ -4,7 +4,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Maintenance Requests</h2>
-    {% if current_user.role == 'Tenant' %}
+    {% if active_role == 'Tenant' %}
     <a href="{{ url_for('maintenance.submit') }}" class="btn btn-primary">
         <i class="bi bi-plus"></i> Submit Request
     </a>
@@ -16,7 +16,7 @@
         <thead class="table-light">
             <tr>
                 <th>ID</th>
-                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                {% if active_role in ('Admin', 'LeasingAgent') %}
                 <th>User / Unit</th>
                 {% endif %}
                 <th>Category</th>
@@ -24,7 +24,7 @@
                 <th>Priority</th>
                 <th>Status</th>
                 <th>Misuse</th>
-                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                {% if active_role in ('Admin', 'LeasingAgent') %}
                 <th>Actions</th>
                 {% endif %}
             </tr>
@@ -39,7 +39,7 @@
                     </a>
                 </td>
 
-                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                {% if active_role in ('Admin', 'LeasingAgent') %}
                 <td>
                     {{ req.lease.tenant.name }}<br>
                     <small class="text-muted">
@@ -76,7 +76,7 @@
                     {% endif %}
                 </td>
 
-                {% if current_user.role in ('Admin', 'LeasingAgent') %}
+                {% if active_role in ('Admin', 'LeasingAgent') %}
                 <td>
                     {% if req.status not in ('Resolved', 'Misuse') %}
                     <form method="POST" action="{{ url_for('maintenance.update_status', request_id=req.request_id) }}" class="d-inline">
@@ -90,7 +90,7 @@
                         <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
                     </form>
 
-                    {% if current_user.role == 'Admin' %}
+                    {% if active_role == 'Admin' %}
                     <form method="POST" action="{{ url_for('maintenance.update_status', request_id=req.request_id) }}" class="d-inline ms-1">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="action" value="misuse">
@@ -104,7 +104,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="{% if current_user.role in ('Admin', 'LeasingAgent') %}8{% else %}6{% endif %}" class="text-center text-muted py-4">
+                <td colspan="{% if active_role in ('Admin', 'LeasingAgent') %}8{% else %}6{% endif %}" class="text-center text-muted py-4">
                     No maintenance requests
                 </td>
             </tr>

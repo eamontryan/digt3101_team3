@@ -1,0 +1,195 @@
+{% extends "layout/base.html" %}
+{% block title %}Lease #{{ lease.lease_id }} - REMS{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('leases.list_leases') }}">Leases</a></li>
+        <li class="breadcrumb-item active">Lease #{{ lease.lease_id }}</li>
+    </ol>
+</nav>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Lease #{{ lease.lease_id }}</h4>
+        <span class="badge fs-6 {% if lease.status == 'Active' %}bg-success{% elif lease.status == 'Pending' %}bg-warning text-dark{% elif lease.status == 'Expired' %}bg-secondary{% else %}bg-danger{% endif %}">
+            {{ lease.status }}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table">
+                    <tr><th>Tenant</th><td>{{ lease.tenant.name }}</td></tr>
+                    <tr><th>Email</th><td>{{ lease.tenant.email }}</td></tr>
+                    <tr><th>Unit</th><td>{{ lease.unit.location }}</td></tr>
+                    <tr><th>Mall</th><td>{{ lease.unit.mall.name }}</td></tr>
+                    <tr><th>Monthly Rate</th><td>${{ "{:,.2f}".format(lease.unit.rental_rate) }}</td></tr>
+                    <tr><th>Payment Cycle</th><td>{{ lease.payment_cycle }}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table">
+                    <tr><th>Start Date</th><td>{{ lease.start_date.strftime('%b %d, %Y') }}</td></tr>
+                    <tr><th>End Date</th><td>{{ lease.end_date.strftime('%b %d, %Y') }}</td></tr>
+                    <tr><th>Auto-Renew</th><td>{{ 'Yes' if lease.auto_renew else 'No' }}</td></tr>
+                    {% if lease.auto_renew and lease.renewal_rate_increase %}
+                    <tr><th>Renewal Rate Increase</th><td>{{ lease.renewal_rate_increase }}%</td></tr>
+                    {% endif %}
+                    <tr><th>Renewal Status</th><td>{{ lease.renewal_status }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Signatures -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-pen"></i> Signatures</h5>
+        <span class="badge {% if lease.signature_status == 'Fully Signed' %}bg-success{% elif lease.signature_status == 'Partially Signed' %}bg-info{% else %}bg-secondary{% endif %}">
+            {{ lease.signature_status }}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <strong>Tenant Signature</strong>
+                {% if lease.tenant_signature %}
+                <p class="text-success mb-0">
+                    <i class="bi bi-check-circle"></i> Signed on {{ lease.tenant_signed_at.strftime('%b %d, %Y at %I:%M %p') }}
+                </p>
+                {% else %}
+                <p class="text-danger mb-0"><i class="bi bi-x-circle"></i> Not yet signed</p>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <strong>Agent Signature</strong>
+                {% if lease.agent_signature %}
+                <p class="text-success mb-0">
+                    <i class="bi bi-check-circle"></i> Signed on {{ lease.agent_signed_at.strftime('%b %d, %Y at %I:%M %p') }}
+                </p>
+                {% else %}
+                <p class="text-danger mb-0"><i class="bi bi-x-circle"></i> Not yet signed</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% if lease.signature_status != 'Fully Signed' %}
+    <div class="card-footer">
+        <a href="{{ url_for('leases.sign', lease_id=lease.lease_id) }}" class="btn btn-success">
+            <i class="bi bi-pen"></i> Sign Lease
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Invoices -->
+{% if lease.invoices %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-receipt"></i> Invoices</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Issue Date</th>
+                    <th>Due Date</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in lease.invoices|sort(attribute='issue_date', reverse=True) %}
+                <tr>
+                    <td>{{ inv.invoice_id }}</td>
+                    <td>{{ inv.issue_date.strftime('%b %d, %Y') }}</td>
+                    <td>{{ inv.due_date.strftime('%b %d, %Y') }}</td>
+                    <td>${{ "{:,.2f}".format(inv.total_amount) }}</td>
+                    <td>
+                        <span class="badge {% if inv.status == 'Paid' %}bg-success{% elif inv.status == 'Overdue' %}bg-danger{% elif inv.status == 'Partially Paid' %}bg-info{% else %}bg-warning text-dark{% endif %}">
+                            {{ inv.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if inv.status in ('Pending', 'Overdue', 'Partially Paid') %}
+                        <a href="{{ url_for('billing.pay', invoice_id=inv.invoice_id) }}" class="btn btn-sm btn-success">Pay</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Maintenance Requests -->
+{% if lease.maintenance_requests %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-wrench"></i> Maintenance Requests</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Category</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in lease.maintenance_requests|sort(attribute='created_at', reverse=True) %}
+                <tr>
+                    <td>{{ req.request_id }}</td>
+                    <td>{{ req.category }}</td>
+                    <td>
+                        <span class="badge {% if req.priority == 'Urgent' %}bg-danger{% elif req.priority == 'High' %}bg-warning text-dark{% elif req.priority == 'Medium' %}bg-info{% else %}bg-secondary{% endif %}">
+                            {{ req.priority }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge {% if req.status == 'Resolved' %}bg-success{% elif req.status == 'In Progress' %}bg-primary{% elif req.status == 'Misuse' %}bg-danger{% elif req.status == 'Rejected' %}bg-dark{% else %}bg-warning text-dark{% endif %}">
+                            {{ req.status }}
+                        </span>
+                    </td>
+                    <td>{{ req.created_at.strftime('%b %d, %Y') if req.created_at else 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Lease Documents -->
+{% if lease.documents %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Lease Documents</h5>
+    </div>
+    <ul class="list-group list-group-flush">
+        {% for doc in lease.documents %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-file-earmark-pdf"></i> {{ doc.file_name }}
+            </div>
+            <small class="text-muted">Generated {{ doc.generated_at.strftime('%b %d, %Y') }}</small>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="mt-3">
+    <a href="{{ url_for('leases.list_leases') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Leases
+    </a>
+</div>
+{% endblock %}

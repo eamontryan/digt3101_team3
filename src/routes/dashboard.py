@@ -7,6 +7,7 @@ from models.invoice import Invoice
 from models.appointment import Appointment
 from models.maintenance_request import MaintenanceRequest
 from models.notification import Notification
+from routes import get_active_role
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -14,9 +15,10 @@ dashboard_bp = Blueprint('dashboard', __name__)
 @dashboard_bp.route('/')
 @login_required
 def index():
-    if current_user.role == 'Admin':
+    role = get_active_role()
+    if role == 'Admin':
         return admin_dashboard()
-    elif current_user.role == 'LeasingAgent':
+    elif role == 'LeasingAgent':
         return agent_dashboard()
     else:
         return tenant_dashboard()

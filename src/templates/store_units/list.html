@@ -8,7 +8,7 @@
         <a href="{{ url_for('store_units.search') }}" class="btn btn-outline-primary">
             <i class="bi bi-search"></i> Search
         </a>
-        {% if current_user.role == 'Admin' %}
+        {% if active_role == 'Admin' %}
         <a href="{{ url_for('store_units.create') }}" class="btn btn-primary">
             <i class="bi bi-plus"></i> Add Unit
         </a>
@@ -37,7 +37,7 @@
                 <td>{{ unit.mall.name }}</td>
                 <td>{{ unit.location }}</td>
                 <td>{{ unit.size }}</td>
-                <td>{{ "%.2f"|format(unit.rental_rate) }}</td>
+                <td>{{ "{:,.2f}".format(unit.rental_rate) }}</td>
                 <td>{{ unit.classification_tier or '-' }}</td>
                 <td>
                     <span class="badge {% if unit.availability == 'Available' %}bg-success{% elif unit.availability == 'Occupied' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
@@ -46,7 +46,7 @@
                 </td>
                 <td>
                     <a href="{{ url_for('store_units.detail', unit_id=unit.unit_id) }}" class="btn btn-sm btn-outline-primary">View</a>
-                    {% if current_user.role == 'Admin' %}
+                    {% if active_role == 'Admin' %}
                     <a href="{{ url_for('store_units.edit', unit_id=unit.unit_id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
                     {% endif %}
                 </td>

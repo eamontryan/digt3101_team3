@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from sqlalchemy import case
-from routes import role_required
+from routes import role_required, get_active_role
 from models import db
 from models.maintenance_request import MaintenanceRequest
 from models.lease import Lease
@@ -35,7 +35,7 @@ def list_requests():
 
     base_query = MaintenanceRequest.query.join(Lease)
 
-    if current_user.role == 'Tenant':
+    if get_active_role() == 'Tenant':
         base_query = base_query.filter(Lease.tenant_id == current_user.user_id)
 
     requests = base_query.order_by(
@@ -75,7 +75,7 @@ def request_detail(request_id):
     ).first_or_404()
 
     # Tenants can only view their own requests
-    if current_user.role == 'Tenant' and maint_request.lease.tenant_id != current_user.user_id:
+    if get_active_role() == 'Tenant' and maint_request.lease.tenant_id != current_user.user_id:
         flash('You are not authorized to view this maintenance request.', 'danger')
         return redirect(url_for('maintenance.list_requests'))
 
@@ -92,7 +92,7 @@ def update_status(request_id):
 
     if action == 'misuse':
         # Only admins can mark misuse
-        if current_user.role != 'Admin':
+        if get_active_role() != 'Admin':
             flash('Only admins can mark a maintenance request as misuse.', 'danger')
             return redirect(url_for('maintenance.list_requests'))
 

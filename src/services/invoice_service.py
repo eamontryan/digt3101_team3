@@ -5,6 +5,7 @@ from models.invoice import Invoice
 from models.utility_usage import UtilityUsage
 from models.maintenance_request import MaintenanceRequest
 from models.lease import Lease
+from services.discount_service import get_active_discount
 from datetime import date
 
 CYCLE_MULTIPLIERS = {
@@ -29,6 +30,12 @@ def generate_invoice(lease_id, issue_date=None, due_date=None):
 
     multiplier = CYCLE_MULTIPLIERS.get(lease.payment_cycle, 1)
     rent_amount = lease.unit.rental_rate * multiplier
+
+    # Apply multi-unit discount to rent if applicable
+    discount = get_active_discount(lease.tenant_id)
+    if discount:
+        discount_amount = rent_amount * discount.discount_pct / Decimal('100')
+        rent_amount = rent_amount - discount_amount
 
     # Link any un-invoiced utility usage for this unit
     usages = UtilityUsage.query.filter_by(
@@ -70,6 +77,13 @@ def recalculate_invoice_total(invoice):
     """Recalculate an invoice's total_amount from rent + utilities + misuse charges."""
     multiplier = CYCLE_MULTIPLIERS.get(invoice.lease.payment_cycle, 1)
     rent = invoice.lease.unit.rental_rate * multiplier
+
+    # Apply multi-unit discount to rent if applicable
+    discount = get_active_discount(invoice.lease.tenant_id)
+    if discount:
+        discount_amount = rent * discount.discount_pct / Decimal('100')
+        rent = rent - discount_amount
+
     utility_total = sum((u.amount for u in invoice.utility_usages), Decimal('0'))
     misuse_total = sum(
         (m.charge_amount for m in invoice.maintenance_charges if m.misuse_flag and m.charge_amount),

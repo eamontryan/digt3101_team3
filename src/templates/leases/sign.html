@@ -10,7 +10,7 @@
             <h5>Lease Summary</h5>
             <p><strong>Unit:</strong> {{ lease.unit.location }} ({{ lease.unit.mall.name }})</p>
             <p><strong>Period:</strong> {{ lease.start_date.strftime('%b %d, %Y') }} - {{ lease.end_date.strftime('%b %d, %Y') }}</p>
-            <p><strong>Monthly Rate:</strong> {{ "%.2f"|format(lease.unit.rental_rate) }}</p>
+            <p><strong>Monthly Rate:</strong> {{ "{:,.2f}".format(lease.unit.rental_rate) }}</p>
             <p><strong>Payment Cycle:</strong> {{ lease.payment_cycle }}</p>
         </div>
 

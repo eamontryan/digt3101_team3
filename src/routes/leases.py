@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-from routes import role_required
+from routes import role_required, get_active_role
 from models import db
 from models.lease import Lease
 from models.store_unit import StoreUnit
@@ -14,7 +14,7 @@ leases_bp = Blueprint('leases', __name__, url_prefix='/leases')
 @leases_bp.route('/')
 @login_required
 def list_leases():
-    if current_user.role == 'Tenant':
+    if get_active_role() == 'Tenant':
         leases = Lease.query.filter_by(tenant_id=current_user.user_id).all()
     else:
         leases = Lease.query.all()

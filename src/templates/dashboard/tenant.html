@@ -40,7 +40,7 @@
                         <span class="badge {% if inv.status == 'Overdue' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
                             {{ inv.status }}
                         </span><br>
-                        <strong>{{ "%.2f"|format(inv.total_amount) }}</strong>
+                        <strong>{{ "{:,.2f}".format(inv.total_amount) }}</strong>
                     </div>
                 </div>
                 {% else %}

@@ -63,7 +63,7 @@
                 <h5 class="card-title">{{ unit.location }}</h5>
                 <h6 class="card-subtitle mb-2 text-muted">{{ unit.mall.name }}</h6>
                 <p class="mb-1"><strong>Size:</strong> {{ unit.size }} sqm</p>
-                <p class="mb-1"><strong>Rate:</strong> {{ "%.2f"|format(unit.rental_rate) }}/month</p>
+                <p class="mb-1"><strong>Rate:</strong> {{ "{:,.2f}".format(unit.rental_rate) }}/month</p>
                 <p class="mb-1"><strong>Tier:</strong> {{ unit.classification_tier or 'N/A' }}</p>
                 <p class="mb-1"><strong>Purpose:</strong> {{ unit.business_purpose or 'N/A' }}</p>
                 <span class="badge {% if unit.availability == 'Available' %}bg-success{% elif unit.availability == 'Occupied' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">

@@ -2,7 +2,7 @@ import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from routes import role_required
+from routes import role_required, get_active_role
 from models import db
 from models.rental_application import RentalApplication
 from models.application_document import ApplicationDocument
@@ -23,7 +23,7 @@ def allowed_file(filename):
 @applications_bp.route('/')
 @login_required
 def list_applications():
-    if current_user.role == 'Tenant':
+    if get_active_role() == 'Tenant':
         applications = RentalApplication.query.filter_by(tenant_id=current_user.user_id).all()
     else:
         applications = RentalApplication.query.all()

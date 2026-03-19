@@ -10,7 +10,7 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(255), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
-    role = db.Column(db.Enum('Admin', 'LeasingAgent', 'Tenant'), nullable=False)
+    role = db.Column(db.Enum('Admin', 'LeasingAgent', 'Tenant', 'Dev'), nullable=False)
     phone = db.Column(db.String(20))
     status = db.Column(db.Enum('Active', 'Inactive', 'Suspended'), nullable=False, default='Active')
 
