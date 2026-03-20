@@ -1,6 +1,6 @@
 # REMS Test Suite
 
-This directory contains 23 automated test cases for the Retail Estate Management System (REMS), written with **pytest** and Flask's built-in test client. All tests run against an **in-memory SQLite database**, so no external database setup is required.
+This directory contains 23 automated test cases for the Retail Estate Management System (REMS), written with **pytest** and Flask's built-in test client. All tests run against an **in-memory SQLite database**, so no external database setup is required. Run in virtual environment if using one.
 
 ## Prerequisites
 
@@ -23,36 +23,34 @@ This directory contains 23 automated test cases for the Retail Estate Management
 
 ## Running the Tests
 
-All commands should be run from the **project root** (`digt3101_team3/`).
+All commands should be run from the **tests** directory.
+
+```bash
+cd tests
+```
 
 ### Run all tests
 
 ```bash
-pytest tests/
-```
-
-### Run all tests with verbose output
-
-```bash
-pytest tests/ -v
+python -m pytest -v
 ```
 
 ### Run a single test file
 
 ```bash
-pytest tests/test_tc006_login.py
+python -m pytest -v test_tc006_login.py
 ```
 
 ### Run a specific test function
 
 ```bash
-pytest tests/test_tc006_login.py::test_login_correct_credentials -v
+python -m pytest -v test_tc006_login.py::test_successful_login
 ```
 
 ### Run tests matching a keyword
 
 ```bash
-pytest tests/ -k "appointment"
+python -m pytest -v -k "appointment"
 ```
 
 ## Test Case Overview
@@ -100,5 +98,5 @@ pytest tests/ -k "appointment"
 - **TC-018** (`test_tc018_db_query_index.py`) requires a live MySQL connection and will be skipped automatically when running against SQLite.
 - Performance tests seed large amounts of data and may take longer than functional tests. To skip them:
   ```bash
-  pytest tests/ --ignore=tests/test_tc009_search_response_time.py --ignore=tests/test_tc014_search_load.py --ignore=tests/test_tc015_appointment_slot_perf.py --ignore=tests/test_tc016_conflict_check_perf.py --ignore=tests/test_tc017_billing_batch_perf.py --ignore=tests/test_tc018_db_query_index.py --ignore=tests/test_tc019_large_result_set.py
+  python -m pytest -v --ignore=test_tc009_search_response_time.py --ignore=test_tc014_search_load.py --ignore=test_tc015_appointment_slot_perf.py --ignore=test_tc016_conflict_check_perf.py --ignore=test_tc017_billing_batch_perf.py --ignore=test_tc018_db_query_index.py --ignore=test_tc019_large_result_set.py
   ```

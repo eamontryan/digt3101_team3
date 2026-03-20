@@ -146,6 +146,7 @@ To re-trigger these checks, simply restart the Flask server and load any page.
 | `Can't connect to MySQL server` | Make sure MySQL service is running |
 | `Port 5000 already in use` | Run with a different port: `flask run --port 5001` |
 | `TemplateNotFound` | Make sure you're running `flask run` from the `src/` directory |
+|`sqlalchemy.exc.ProgrammingError` | Repopulate the database as in Step 2 |
 
 ## Project Structure Overview
 

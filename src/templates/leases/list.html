@@ -47,7 +47,7 @@
                 </td>
                 <td>
                     <a href="{{ url_for('leases.detail', lease_id=lease.lease_id) }}" class="btn btn-sm btn-outline-primary">View</a>
-                    {% if lease.signature_status != 'Fully Signed' %}
+                    {% if lease.signature_status != 'Fully Signed' and active_role != 'Admin' %}
                     <a href="{{ url_for('leases.sign', lease_id=lease.lease_id) }}" class="btn btn-sm btn-outline-success">Sign</a>
                     {% endif %}
                 </td>
