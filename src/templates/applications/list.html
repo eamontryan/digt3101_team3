@@ -121,7 +121,9 @@
                     {% for doc in app.documents %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
-                            <i class="bi bi-file-earmark"></i> {{ doc.file_name }}
+                            <a href="{{ url_for('applications.download_document', app_id=app.application_id, doc_id=doc.document_id) }}" class="text-decoration-none text-primary fw-medium">
+                                <i class="bi bi-download me-1"></i>{{ doc.file_name }}
+                            </a>
                             <small class="text-muted ms-2">{{ doc.file_type | upper }}</small>
                         </div>
                         {% if doc.file_size %}
@@ -168,7 +170,9 @@
                         {% for doc in app.documents %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
-                                <i class="bi bi-file-earmark"></i> {{ doc.file_name }}
+                                <a href="{{ url_for('applications.download_document', app_id=app.application_id, doc_id=doc.document_id) }}" class="text-decoration-none text-primary fw-medium">
+                                    <i class="bi bi-download me-1"></i>{{ doc.file_name }}
+                                </a>
                                 <small class="text-muted ms-2">{{ doc.file_type | upper }}</small>
                             </div>
                             {% if doc.file_size %}

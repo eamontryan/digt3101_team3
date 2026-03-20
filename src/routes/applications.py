@@ -80,10 +80,10 @@ def submit():
 
 @applications_bp.route('/<int:app_id>/update', methods=['POST'])
 @login_required
-@role_required('Tenant')
+@role_required('Tenant', 'Admin', 'LeasingAgent')
 def update(app_id):
     application = RentalApplication.query.get_or_404(app_id)
-    if application.tenant_id != current_user.user_id:
+    if get_active_role() == 'Tenant' and application.tenant_id != current_user.user_id:
         flash('Unauthorized.', 'danger')
         return redirect(url_for('applications.list_applications'))
     if application.status != 'Pending':
@@ -163,3 +163,22 @@ def reject(app_id):
 
     flash('Application rejected.', 'info')
     return redirect(url_for('applications.list_applications'))
+@applications_bp.route('/<int:app_id>/document/<int:doc_id>')
+@login_required
+def download_document(app_id, doc_id):
+    from flask import send_file
+    application = RentalApplication.query.get_or_404(app_id)
+    if get_active_role() == 'Tenant' and application.tenant_id != current_user.user_id:
+        flash('Unauthorized.', 'danger')
+        return redirect(url_for('applications.list_applications'))
+        
+    doc = ApplicationDocument.query.get_or_404(doc_id)
+    if doc.application_id != app_id:
+        flash('Invalid document.', 'danger')
+        return redirect(url_for('applications.list_applications'))
+        
+    if not os.path.exists(doc.file_path):
+        flash('File not found on server.', 'danger')
+        return redirect(url_for('applications.list_applications'))
+
+    return send_file(doc.file_path, as_attachment=True, download_name=doc.file_name)
