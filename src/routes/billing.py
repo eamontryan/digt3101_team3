@@ -56,18 +56,26 @@ def invoice_detail(invoice_id):
     multiplier = cycle_multipliers.get(invoice.lease.payment_cycle, 1)
     rent_amount = float(invoice.lease.unit.rental_rate) * multiplier
 
-    # Check for multi-unit discount
-    discount = get_active_discount(invoice.lease.tenant_id)
-    discount_pct = float(discount.discount_pct) if discount else 0
-    discount_amount = rent_amount * discount_pct / 100
-    rent_after_discount = rent_amount - discount_amount
-
     utility_total = sum(float(u.amount) for u in invoice.utility_usages)
     misuse_charges = [
         m for m in invoice.maintenance_charges if m.misuse_flag and m.charge_amount
     ]
     misuse_total = sum(float(m.charge_amount) for m in misuse_charges)
     total_paid = sum(float(p.amount) for p in invoice.payments if p.status == 'Completed')
+
+    # Only show discount if it was actually applied to this invoice's stored total.
+    # Compare stored total against undiscounted total to detect whether a discount was baked in.
+    undiscounted_total = rent_amount + utility_total + misuse_total
+    discount_pct = 0
+    discount_amount = 0
+    rent_after_discount = rent_amount
+
+    if float(invoice.total_amount) < undiscounted_total:
+        active_discount = get_active_discount(invoice.lease.tenant_id)
+        if active_discount:
+            discount_pct = float(active_discount)
+            discount_amount = rent_amount * discount_pct / 100
+            rent_after_discount = rent_amount - discount_amount
 
     data = {
         'invoice_id': invoice.invoice_id,

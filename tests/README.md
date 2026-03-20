@@ -53,7 +53,7 @@ python -m pytest -v test_tc006_login.py::test_successful_login
 python -m pytest -v -k "appointment"
 ```
 
-### Run coverage report
+### Run coverage report (from project root directory)
 
 ```bash
 python -m pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html:coverage_report

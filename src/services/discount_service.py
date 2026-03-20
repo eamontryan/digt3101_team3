@@ -1,14 +1,12 @@
-from models.discount import Discount
+from decimal import Decimal
 from models.lease import Lease
+
+MULTI_UNIT_DISCOUNT_PCT = Decimal('5.0')
 
 
 def get_active_discount(tenant_id):
+    """Return the discount percentage if tenant has more than 1 active lease, else None."""
     active_leases = Lease.query.filter_by(tenant_id=tenant_id, status='Active').count()
-    discount = Discount.query.filter_by(
-        tenant_id=tenant_id,
-        status='Active'
-    ).order_by(Discount.discount_pct.desc()).first()
-
-    if discount and active_leases >= 2:
-        return discount
+    if active_leases > 1:
+        return MULTI_UNIT_DISCOUNT_PCT
     return None

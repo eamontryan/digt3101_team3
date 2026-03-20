@@ -285,25 +285,6 @@ CREATE TABLE lease_document (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- 14. DISCOUNT  (multi-unit discount for tenants)
--- ============================================================
-CREATE TABLE discount (
-    discount_id     INT AUTO_INCREMENT PRIMARY KEY,
-    tenant_id       INT NOT NULL,
-    discount_pct    DECIMAL(5,2) NOT NULL COMMENT 'Percentage discount e.g. 10.00 = 10%',
-    start_date      DATE NOT NULL,
-    end_date        DATE DEFAULT NULL COMMENT 'NULL = no expiry',
-    status          ENUM('Active', 'Expired', 'Cancelled') NOT NULL DEFAULT 'Active',
-    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_discount_tenant
-        FOREIGN KEY (tenant_id) REFERENCES `user`(user_id)
-        ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB;
-
-
--- ============================================================
 -- INDEXES
 -- ============================================================
 CREATE INDEX idx_user_role       ON `user`(role);
@@ -325,8 +306,6 @@ CREATE INDEX idx_rental_app_status ON rental_application(status);
 CREATE INDEX idx_notification_recipient ON notification(recipient_id);
 CREATE INDEX idx_app_doc_application    ON application_document(application_id);
 CREATE INDEX idx_lease_doc_lease        ON lease_document(lease_id);
-CREATE INDEX idx_discount_tenant        ON discount(tenant_id);
-CREATE INDEX idx_discount_status        ON discount(status);
 CREATE INDEX idx_lease_signature        ON lease(signature_status);
 
 
@@ -538,15 +517,6 @@ VALUES
 (5, 'lease_agreement_elena_unit_301.pdf',   '/uploads/leases/5/lease_agreement_v1.pdf',   '2026-02-22 10:00:00'),
 (1, 'lease_agreement_anna_unit_g01_v2.pdf', '/uploads/leases/1/lease_agreement_v2.pdf',   '2026-02-15 16:00:00');
 
--- Discounts (multi-unit tenant discounts)
-INSERT INTO discount (tenant_id, discount_pct, start_date, end_date, status)
-VALUES
--- Anna: 5% discount ready once her 2nd unit application is approved and lease signed
-(6, 5.00,  '2025-12-01', NULL, 'Active'),
--- Carla: 5% discount ready once her 2nd unit application is approved and lease signed
-(8, 5.00,  '2026-01-01', NULL, 'Active');
-
-
 -- ============================================================
 -- DEV USER SAMPLE DATA
 -- ============================================================
@@ -633,7 +603,3 @@ VALUES
 (11, 'Maintenance Update',       'Maintenance In Progress',      'Your Electrical maintenance request is now being handled by our technician.', 'maintenance_request', 9),
 (11, 'General',                  'Welcome to REMS',              'Welcome to the Retail Estate Management System. Manage your leases, pay invoices, and submit maintenance requests from your dashboard.', NULL, NULL);
 
--- Discount for dev user (multi-unit — activates once lease 7 is signed, giving 2 active leases)
-INSERT INTO discount (tenant_id, discount_pct, start_date, end_date, status)
-VALUES
-(11, 5.00, '2026-01-01', NULL, 'Active');

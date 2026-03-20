@@ -16,4 +16,3 @@ from models.maintenance_request import MaintenanceRequest
 from models.notification import Notification
 from models.application_document import ApplicationDocument
 from models.lease_document import LeaseDocument
-from models.discount import Discount

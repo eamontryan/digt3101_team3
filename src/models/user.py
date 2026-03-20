@@ -32,7 +32,5 @@ class User(UserMixin, db.Model):
     rental_applications = db.relationship('RentalApplication', backref='tenant', lazy=True)
     leases = db.relationship('Lease', backref='tenant', lazy=True)
     notifications = db.relationship('Notification', backref='recipient', lazy=True)
-    discounts = db.relationship('Discount', backref='tenant', lazy=True)
-
     def get_id(self):
         return str(self.user_id)

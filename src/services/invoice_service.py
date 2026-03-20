@@ -32,9 +32,9 @@ def generate_invoice(lease_id, issue_date=None, due_date=None):
     rent_amount = lease.unit.rental_rate * multiplier
 
     # Apply multi-unit discount to rent if applicable
-    discount = get_active_discount(lease.tenant_id)
-    if discount:
-        discount_amount = rent_amount * discount.discount_pct / Decimal('100')
+    discount_pct = get_active_discount(lease.tenant_id)
+    if discount_pct:
+        discount_amount = rent_amount * discount_pct / Decimal('100')
         rent_amount = rent_amount - discount_amount
 
     # Link any un-invoiced utility usage for this unit
@@ -79,9 +79,9 @@ def recalculate_invoice_total(invoice):
     rent = invoice.lease.unit.rental_rate * multiplier
 
     # Apply multi-unit discount to rent if applicable
-    discount = get_active_discount(invoice.lease.tenant_id)
-    if discount:
-        discount_amount = rent * discount.discount_pct / Decimal('100')
+    discount_pct = get_active_discount(invoice.lease.tenant_id)
+    if discount_pct:
+        discount_amount = rent * discount_pct / Decimal('100')
         rent = rent - discount_amount
 
     utility_total = sum((u.amount for u in invoice.utility_usages), Decimal('0'))

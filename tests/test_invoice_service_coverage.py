@@ -6,7 +6,6 @@ from models import db
 from models.lease import Lease
 from models.invoice import Invoice
 from models.payment import Payment
-from models.discount import Discount
 from models.utility_usage import UtilityUsage
 from models.maintenance_request import MaintenanceRequest
 from models.notification import Notification
@@ -17,13 +16,8 @@ def test_generate_invoice_with_discount_and_utility(app, seed_users, seed_units)
         tenant_u = seed_users['tenant']
         unit = seed_units[0]
         # Rent is 1000
-        
-        # Add active discount 10%
-        d1 = Discount(tenant_id=tenant_u.user_id, discount_pct=Decimal('10.0'), status='Active', start_date=date.today())
-        db.session.add(d1)
-        db.session.commit()
-        
-        # Need 2 active leases to get the discount
+
+        # Need 2 active leases to get the 5% multi-unit discount
         l1 = Lease(tenant_id=tenant_u.user_id, unit_id=unit.unit_id, start_date=date.today(), end_date=date.today()+timedelta(days=365), payment_cycle='Monthly', status='Active')
         l2 = Lease(tenant_id=tenant_u.user_id, unit_id=seed_units[1].unit_id, start_date=date.today(), end_date=date.today()+timedelta(days=365), payment_cycle='Monthly', status='Active')
         db.session.add_all([l1, l2])
@@ -43,8 +37,8 @@ def test_generate_invoice_with_discount_and_utility(app, seed_users, seed_units)
         invoice = generate_invoice(l1_id)
         assert invoice is not None
         
-        # Expected total = (1000 rent - 100 discount) + 50 utility + 75 misuse = 1025
-        assert invoice.total_amount == 1025.0
+        # Expected total = (1000 rent - 50 discount at 5%) + 50 utility + 75 misuse = 1075
+        assert invoice.total_amount == 1075.0
         assert invoice.payments == []
         assert len(invoice.utility_usages) == 1
         assert len(invoice.maintenance_charges) == 1

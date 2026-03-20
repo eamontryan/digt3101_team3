@@ -27,7 +27,6 @@ from models.payment import Payment
 from models.utility_usage import UtilityUsage
 from models.maintenance_request import MaintenanceRequest
 from models.notification import Notification
-from models.discount import Discount
 from datetime import date, datetime
 
 
