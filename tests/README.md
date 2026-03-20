@@ -53,7 +53,15 @@ python -m pytest -v test_tc006_login.py::test_successful_login
 python -m pytest -v -k "appointment"
 ```
 
+### Run coverage report
+
+```bash
+python -m pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html:coverage_report
+```
+
 ## Test Case Overview
+
+### Core Test Cases (TC-001 to TC-023)
 
 | Test File | Description | Category |
 |---|---|---|
@@ -80,6 +88,21 @@ python -m pytest -v -k "appointment"
 | `test_tc021_misuse_charges.py` | Apply charges for misused maintenance requests | Functional |
 | `test_tc022_escalation.py` | Maintenance request priority ordering | Functional |
 | `test_tc023_payment_cycle_billing.py` | Invoice calculation by payment cycle | Functional |
+
+### Coverage Tests
+
+| Test File | Description | Category |
+|---|---|---|
+| `test_applications_coverage.py` | Rental applications route coverage (list, submit, update) | Coverage |
+| `test_appointments_coverage.py` | Appointments route coverage (list, schedule, conflicts) | Coverage |
+| `test_auth_coverage.py` | Authentication route coverage (login, register, redirects) | Coverage |
+| `test_billing_coverage.py` | Billing route coverage (invoice generation, detail, payments) | Coverage |
+| `test_invoice_service_coverage.py` | Invoice service logic (discounts, utilities, overdue checks) | Coverage |
+| `test_lease_service_coverage.py` | Lease service logic (signing, full execution, renewals) | Coverage |
+| `test_leases_coverage.py` | Leases route coverage (list, create, detail, sign, download) | Coverage |
+| `test_maintenance_coverage.py` | Maintenance route coverage (submit, detail, status updates) | Coverage |
+| `test_notifications_coverage.py` | Notifications route coverage (list, dismiss, API) | Coverage |
+| `test_utilities_coverage.py` | Utilities route coverage (list, add, invoice linking) | Coverage |
 
 ## Test Architecture
 

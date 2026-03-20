@@ -12,17 +12,25 @@ def test_generate_invoices_admin(client, seed_users, seed_units):
         l1 = Lease(
             tenant_id=seed_users['tenant'].user_id,
             unit_id=seed_units[0].unit_id,
-            start_date=date.today() - timedelta(days=30),
+            start_date=date.today() - timedelta(days=30), 
             end_date=date.today() + timedelta(days=335),
             payment_cycle='Monthly',
             status='Active'
         )
         db.session.add(l1)
         db.session.commit()
+        lease_id = l1.lease_id
+        assert Invoice.query.filter_by(lease_id=lease_id).count() == 0
 
     client.post('/login', data={'username': 'admin_test', 'password': 'password123'})
     resp = client.post('/billing/generate-invoices', follow_redirects=True)
-    assert b'invoice(s) generated successfully' in resp.data
+    assert resp.status_code == 200
+
+    with client.application.app_context():
+        invoices = Invoice.query.filter_by(lease_id=lease_id).all()
+        assert len(invoices) >= 1, "Expected at least one invoice to be generated"
+        for inv in invoices:
+            assert inv.total_amount > 0
 
 def test_generate_invoices_no_due(client, seed_users):
     client.post('/login', data={'username': 'admin_test', 'password': 'password123'})
