@@ -557,8 +557,8 @@ VALUES
 (11, 2, '2026-01-01', '2026-12-31', 'Monthly', 'Active',
  'esign_dev_001', '2025-12-18 10:00:00', 'esign_mike_002', '2025-12-19 09:00:00', 'Fully Signed',
  1, 5.00, 'Pending Renewal'),
-(11, 4, '2026-04-01', '2027-03-31', 'Quarterly', 'Pending',
- NULL, NULL, NULL, NULL, 'Unsigned',
+(11, 4, '2026-01-15', '2027-01-14', 'Quarterly', 'Active',
+ 'esign_dev_002', '2026-01-10 10:00:00', 'esign_mike_003', '2026-01-11 09:00:00', 'Fully Signed',
  0, NULL, 'Not Applicable');
 
 -- Lease Documents
