@@ -6,6 +6,7 @@ from models.lease import Lease
 from models.store_unit import StoreUnit
 from models.user import User
 from services.lease_service import sign_lease, generate_lease_pdf
+from services.notification_service import create_notification
 from datetime import datetime
 
 leases_bp = Blueprint('leases', __name__, url_prefix='/leases')
@@ -116,5 +117,15 @@ def terminate(lease_id):
         unit.availability = 'Available'
 
     db.session.commit()
+
+    create_notification(
+        recipient_id=lease.tenant_id,
+        notif_type='General',
+        title='Lease Terminated',
+        message=f'Your lease for {lease.unit.location} has been terminated.',
+        related_entity='lease',
+        related_id=lease.lease_id
+    )
+
     flash('Lease terminated successfully.', 'success')
     return redirect(url_for('leases.detail', lease_id=lease_id))
