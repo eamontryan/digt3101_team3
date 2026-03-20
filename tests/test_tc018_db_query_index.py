@@ -14,14 +14,14 @@ import pytest
 
 
 def _mysql_available():
-    """Check if MySQL is available and rems_db exists."""
+    """Check if MySQL is running and the rems_db is available."""
     try:
         result = subprocess.run(
-            ['mysql', '-u', 'root', '-e', 'USE rems_db; SELECT 1;'],
+            ['mysql', '-u', 'root', '-e', 'USE rems_db;'],
             capture_output=True, text=True, timeout=5
         )
         return result.returncode == 0
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    except Exception:
         return False
 
 

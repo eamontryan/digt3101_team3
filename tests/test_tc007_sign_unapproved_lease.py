@@ -44,7 +44,10 @@ def test_sign_pending_lease_stays_partial(app, seed_users):
         db.session.commit()
 
         # Tenant signs it
-        sign_lease(lease, tenant, 'tenant_sig_token')
+        with app.test_request_context():
+            from flask_login import login_user
+            login_user(tenant)
+            sign_lease(lease, tenant, 'tenant_sig_token')
 
         # Lease should now be Partially Signed (not Fully Signed / Active)
         assert lease.signature_status == 'Partially Signed'
@@ -80,8 +83,15 @@ def test_fully_signed_lease_becomes_active(app, seed_users):
         db.session.add(lease)
         db.session.commit()
 
-        sign_lease(lease, tenant, 'tenant_sig')
-        sign_lease(lease, agent, 'agent_sig')
+        with app.test_request_context():
+            from flask_login import login_user
+            login_user(tenant)
+            sign_lease(lease, tenant, 'tenant_sig')
+        
+        with app.test_request_context():
+            from flask_login import login_user
+            login_user(agent)
+            sign_lease(lease, agent, 'agent_sig')
 
         assert lease.signature_status == 'Fully Signed'
         assert lease.status == 'Active'

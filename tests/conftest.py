@@ -7,6 +7,10 @@ import sys
 import os
 import pytest
 
+# Override DATABASE_URL BEFORE importing the app so Config picks up SQLite
+# instead of the MySQL URI from .env
+os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
+
 # Add src/ to the Python path so imports resolve correctly
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
@@ -45,6 +49,8 @@ def setup_db(app):
     """Create all tables before each test and drop them after."""
     with app.app_context():
         _db.create_all()
+        # Prevent objects from detaching when the session is committed
+        _db.session.expire_on_commit = False
         yield
         _db.session.remove()
         _db.drop_all()
@@ -93,8 +99,14 @@ def seed_users(app):
         )
         _db.session.add_all([admin, agent, tenant])
         _db.session.commit()
+        
+        # Eager load needed attributes before expunging
+        _ = admin.user_id, admin.role
+        _ = agent.user_id, agent.role, agent.availability_schedule
+        _ = tenant.user_id, tenant.role
+        _db.session.expunge_all()
+        
         return {'admin': admin, 'agent': agent, 'tenant': tenant}
-
 
 @pytest.fixture
 def seed_mall(app):
@@ -103,8 +115,9 @@ def seed_mall(app):
         mall = Mall(name='Test Mall', location='123 Test St')
         _db.session.add(mall)
         _db.session.commit()
+        _ = mall.mall_id
+        _db.session.expunge_all()
         return mall
-
 
 @pytest.fixture
 def seed_units(app, seed_mall):
@@ -122,6 +135,9 @@ def seed_units(app, seed_mall):
             _db.session.add(u)
             units.append(u)
         _db.session.commit()
+        for u in units:
+            _ = u.unit_id, u.rental_rate, u.availability
+        _db.session.expunge_all()
         return units
 
 
