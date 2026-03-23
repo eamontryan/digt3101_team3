@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from bs4 import BeautifulSoup
 from datetime import date, timedelta
 from models import db
@@ -164,3 +165,53 @@ def test_download_agreement_unauthorized(client, seed_users, seed_units):
     client.post('/login', data={'username': 'tenant_test', 'password': 'password123'})
     resp = client.get(f'/leases/{l1_id}/download-agreement', follow_redirects=True)
     assert b'You are not authorized to download this agreement' in resp.data
+
+
+def test_download_agreement_success(client, seed_users, seed_units):
+    """Test successful PDF download covers generate_lease_pdf."""
+    with client.application.app_context():
+        l1 = Lease(tenant_id=seed_users['tenant'].user_id, unit_id=seed_units[0].unit_id,
+                    start_date=date.today(), end_date=date.today() + timedelta(days=365),
+                    payment_cycle='Monthly', status='Active',
+                    tenant_signature='Tenant Sig', tenant_signed_at=date.today(),
+                    agent_signature='Agent Sig', agent_signed_at=date.today(),
+                    auto_renew=True, renewal_rate_increase=5.0)
+        db.session.add(l1)
+        db.session.commit()
+        l1_id = l1.lease_id
+
+    client.post('/login', data={'username': 'tenant_test', 'password': 'password123'})
+    resp = client.get(f'/leases/{l1_id}/download-agreement')
+    assert resp.status_code == 200
+    assert resp.content_type == 'application/pdf'
+
+
+def test_create_lease_db_error(client, seed_users, seed_units):
+    """Test rollback when db error occurs during lease creation."""
+    client.post('/login', data={'username': 'admin_test', 'password': 'password123'})
+    with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+        resp = client.post('/leases/create', data={
+            'tenant_id': seed_users['tenant'].user_id,
+            'unit_id': seed_units[0].unit_id,
+            'start_date': '2025-01-01',
+            'end_date': '2025-12-31',
+            'payment_cycle': 'Monthly',
+            'renewal_rate_increase': ''
+        }, follow_redirects=True)
+        assert b'An error occurred while creating the lease' in resp.data
+
+
+def test_terminate_lease_db_error(client, seed_users, seed_units):
+    """Test rollback when db error occurs during lease termination."""
+    with client.application.app_context():
+        l1 = Lease(tenant_id=seed_users['tenant'].user_id, unit_id=seed_units[0].unit_id,
+                    start_date=date.today(), end_date=date.today() + timedelta(days=365),
+                    payment_cycle='Monthly', status='Active')
+        db.session.add(l1)
+        db.session.commit()
+        l1_id = l1.lease_id
+
+    client.post('/login', data={'username': 'admin_test', 'password': 'password123'})
+    with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+        resp = client.post(f'/leases/{l1_id}/terminate', follow_redirects=True)
+        assert b'An error occurred while terminating the lease' in resp.data

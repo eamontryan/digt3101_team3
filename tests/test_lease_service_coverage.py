@@ -1,11 +1,12 @@
 import pytest
+from unittest.mock import patch
 from decimal import Decimal
 from datetime import date, timedelta
 from models import db
 from models.lease import Lease
 from models.store_unit import StoreUnit
 from models.notification import Notification
-from services.lease_service import sign_lease, process_lease_renewals
+from services.lease_service import sign_lease, generate_lease_pdf, process_lease_renewals
 from flask import session
 
 def test_sign_lease_tenant(app, seed_users, seed_units):
@@ -118,3 +119,78 @@ def test_process_lease_renewals(app, seed_users, seed_units):
         notif = Notification.query.filter_by(recipient_id=seed_users['tenant'].user_id).first()
         assert notif is not None
         assert 'auto-renewed' in notif.message
+
+
+def test_generate_lease_pdf_unsigned(app, seed_users, seed_units):
+    """Test PDF generation for an unsigned lease."""
+    with app.app_context():
+        l1 = Lease(tenant_id=seed_users['tenant'].user_id, unit_id=seed_units[0].unit_id,
+                    start_date=date.today(), end_date=date.today()+timedelta(days=365),
+                    payment_cycle='Monthly', auto_renew=False)
+        db.session.add(l1)
+        db.session.commit()
+
+        lease = Lease.query.get(l1.lease_id)
+        pdf_buf = generate_lease_pdf(lease)
+        assert pdf_buf is not None
+        data = pdf_buf.read()
+        assert len(data) > 0
+        assert data[:4] == b'%PDF'
+
+
+def test_generate_lease_pdf_fully_signed(app, seed_users, seed_units):
+    """Test PDF generation for a fully signed lease with auto-renew."""
+    with app.app_context():
+        from datetime import datetime
+        l1 = Lease(tenant_id=seed_users['tenant'].user_id, unit_id=seed_units[0].unit_id,
+                    start_date=date.today(), end_date=date.today()+timedelta(days=365),
+                    payment_cycle='Monthly', auto_renew=True, renewal_rate_increase=5.0,
+                    tenant_signature='Tenant Sig', tenant_signed_at=datetime.utcnow(),
+                    agent_signature='Agent Sig', agent_signed_at=datetime.utcnow(),
+                    signature_status='Fully Signed', status='Active')
+        db.session.add(l1)
+        db.session.commit()
+
+        lease = Lease.query.get(l1.lease_id)
+        pdf_buf = generate_lease_pdf(lease)
+        assert pdf_buf is not None
+        data = pdf_buf.read()
+        assert len(data) > 0
+
+
+def test_sign_lease_db_error(app, seed_users, seed_units):
+    """Test rollback when db error occurs during lease signing."""
+    tenant_u = seed_users['tenant']
+    with app.app_context():
+        l1 = Lease(tenant_id=tenant_u.user_id, unit_id=seed_units[0].unit_id,
+                    start_date=date.today(), end_date=date.today()+timedelta(days=365),
+                    payment_cycle='Monthly')
+        db.session.add(l1)
+        db.session.commit()
+        l1_id = l1.lease_id
+
+        with app.test_request_context():
+            from flask_login import login_user
+            login_user(tenant_u)
+
+            lease = Lease.query.get(l1_id)
+            with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+                with pytest.raises(Exception):
+                    sign_lease(lease, tenant_u, 'Sig')
+
+
+def test_process_lease_renewals_db_error(app, seed_users, seed_units):
+    """Test rollback when db error occurs during lease renewal processing."""
+    with app.app_context():
+        end = date.today() + timedelta(days=10)
+        start = end - timedelta(days=365)
+        l1 = Lease(tenant_id=seed_users['tenant'].user_id, unit_id=seed_units[0].unit_id,
+                    start_date=start, end_date=end, payment_cycle='Monthly',
+                    status='Active', auto_renew=True, renewal_rate_increase=5.0,
+                    renewal_status='Not Applicable')
+        db.session.add(l1)
+        db.session.commit()
+
+        with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+            with pytest.raises(Exception):
+                process_lease_renewals()

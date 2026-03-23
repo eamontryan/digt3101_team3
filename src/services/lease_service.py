@@ -116,8 +116,11 @@ def generate_lease_pdf(lease):
     pdf.cell(half, 6, 'Agent / Admin Signature', ln=True)
 
     buf = BytesIO()
-    pdf_string = pdf.output(dest='S').encode('latin-1')
-    buf.write(pdf_string)
+    pdf_output = pdf.output(dest='S')
+    if isinstance(pdf_output, (bytes, bytearray)):
+        buf.write(pdf_output)
+    else:
+        buf.write(pdf_output.encode('latin-1'))
     buf.seek(0)
     return buf
 

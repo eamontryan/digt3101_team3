@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from datetime import date, timedelta
 from models import db
 from models.lease import Lease
@@ -140,3 +141,41 @@ def test_update_status_misuse_unauthorized(client, seed_users, seed_units):
     client.post('/login', data={'username': 'agent_test', 'password': 'password123'})
     resp = client.post(f'/maintenance/{m1_id}/update', data={'action': 'misuse', 'charge_amount': '150.0'}, follow_redirects=True)
     assert b'Only admins can mark a maintenance request as misuse' in resp.data
+
+
+def test_submit_request_db_error(client, seed_users, seed_units):
+    """Test rollback when db error occurs during maintenance request submission."""
+    tenant_u = seed_users['tenant']
+    with client.application.app_context():
+        l1 = Lease(tenant_id=tenant_u.user_id, unit_id=seed_units[0].unit_id, start_date=date.today(), end_date=date.today()+timedelta(days=365), payment_cycle='Monthly', status='Active')
+        db.session.add(l1)
+        db.session.commit()
+        l1_id = l1.lease_id
+
+    client.post('/login', data={'username': 'tenant_test', 'password': 'password123'})
+    with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+        resp = client.post('/maintenance/submit', data={
+            'lease_id': l1_id,
+            'category': 'Plumbing',
+            'description': 'Leak',
+            'priority': 'Medium'
+        }, follow_redirects=True)
+        assert b'An error occurred while submitting the maintenance request' in resp.data
+
+
+def test_update_status_db_error(client, seed_users, seed_units):
+    """Test rollback when db error occurs during maintenance status update."""
+    with client.application.app_context():
+        l1 = Lease(tenant_id=seed_users['tenant'].user_id, unit_id=seed_units[0].unit_id, start_date=date.today(), end_date=date.today()+timedelta(days=365), payment_cycle='Monthly')
+        db.session.add(l1)
+        db.session.commit()
+
+        m1 = MaintenanceRequest(lease_id=l1.lease_id, category='HVAC', priority='Low', status='Open')
+        db.session.add(m1)
+        db.session.commit()
+        m1_id = m1.request_id
+
+    client.post('/login', data={'username': 'admin_test', 'password': 'password123'})
+    with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+        resp = client.post(f'/maintenance/{m1_id}/update', data={'action': 'update', 'status': 'Resolved'}, follow_redirects=True)
+        assert b'An error occurred while updating the maintenance request' in resp.data

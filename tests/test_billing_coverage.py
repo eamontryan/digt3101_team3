@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from bs4 import BeautifulSoup
 from datetime import date, timedelta
 from models import db
@@ -151,3 +152,21 @@ def test_pay_invoice_post_full(client, seed_users, seed_units):
     with client.application.app_context():
         i = Invoice.query.get(i1_id)
         assert i.status == 'Paid'
+
+
+def test_pay_invoice_db_error(client, seed_users, seed_units):
+    """Test rollback when db error occurs during payment."""
+    with client.application.app_context():
+        l1 = Lease(tenant_id=seed_users['tenant'].user_id, unit_id=seed_units[0].unit_id, start_date=date.today(), end_date=date.today()+timedelta(days=365), payment_cycle='Monthly')
+        db.session.add(l1)
+        db.session.commit()
+
+        i1 = Invoice(lease_id=l1.lease_id, issue_date=date.today(), due_date=date.today()+timedelta(days=30), total_amount=1000)
+        db.session.add(i1)
+        db.session.commit()
+        i1_id = i1.invoice_id
+
+    client.post('/login', data={'username': 'tenant_test', 'password': 'password123'})
+    with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+        resp = client.post(f'/billing/invoices/{i1_id}/pay', data={'amount': '500'}, follow_redirects=True)
+        assert b'An error occurred while processing the payment' in resp.data

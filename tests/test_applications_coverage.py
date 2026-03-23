@@ -1,5 +1,6 @@
 import pytest
 import io
+from unittest.mock import patch
 from bs4 import BeautifulSoup
 from datetime import date
 from models import db
@@ -156,3 +157,61 @@ def test_reject_application(client, seed_users, seed_units):
     with client.application.app_context():
         updated = RentalApplication.query.get(app_id)
         assert updated.status == 'Rejected'
+
+
+def test_submit_application_db_error(client, seed_users, seed_units):
+    """Test rollback when db error occurs during application submission."""
+    client.post('/login', data={'username': 'tenant_test', 'password': 'password123'})
+    with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+        resp = client.post('/applications/submit', data={
+            'unit_id': seed_units[0].unit_id,
+        }, follow_redirects=True)
+        assert b'An error occurred while submitting the application' in resp.data
+
+
+def test_update_application_db_error(client, seed_users, seed_units):
+    """Test rollback when db error occurs during application update."""
+    tenant_u = seed_users['tenant']
+    unit1 = seed_units[0]
+    with client.application.app_context():
+        app = RentalApplication(tenant_id=tenant_u.user_id, unit_id=unit1.unit_id, submission_date=date.today(), status='Pending')
+        db.session.add(app)
+        db.session.commit()
+        app_id = app.application_id
+
+    client.post('/login', data={'username': 'tenant_test', 'password': 'password123'})
+    with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+        resp = client.post(f'/applications/{app_id}/update', data={'unit_id': unit1.unit_id}, follow_redirects=True)
+        assert b'An error occurred while updating the application' in resp.data
+
+
+def test_approve_application_db_error(client, seed_users, seed_units):
+    """Test rollback when db error occurs during application approval."""
+    tenant_u = seed_users['tenant']
+    unit1 = seed_units[0]
+    with client.application.app_context():
+        app = RentalApplication(tenant_id=tenant_u.user_id, unit_id=unit1.unit_id, submission_date=date.today(), status='Pending')
+        db.session.add(app)
+        db.session.commit()
+        app_id = app.application_id
+
+    client.post('/login', data={'username': 'admin_test', 'password': 'password123'})
+    with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+        resp = client.post(f'/applications/{app_id}/approve', follow_redirects=True)
+        assert b'An error occurred while approving the application' in resp.data
+
+
+def test_reject_application_db_error(client, seed_users, seed_units):
+    """Test rollback when db error occurs during application rejection."""
+    tenant_u = seed_users['tenant']
+    unit1 = seed_units[0]
+    with client.application.app_context():
+        app = RentalApplication(tenant_id=tenant_u.user_id, unit_id=unit1.unit_id, submission_date=date.today(), status='Pending')
+        db.session.add(app)
+        db.session.commit()
+        app_id = app.application_id
+
+    client.post('/login', data={'username': 'admin_test', 'password': 'password123'})
+    with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+        resp = client.post(f'/applications/{app_id}/reject', follow_redirects=True)
+        assert b'An error occurred while rejecting the application' in resp.data

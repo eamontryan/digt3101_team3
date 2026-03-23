@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from datetime import datetime, timedelta
 from models import db
 from models.appointment import Appointment
@@ -181,3 +182,34 @@ def test_check_agent_availability_helper():
     dt4_start = datetime.strptime('2099-01-07T10:00', '%Y-%m-%dT%H:%M')
     dt4_end = datetime.strptime('2099-01-07T11:00', '%Y-%m-%dT%H:%M')
     assert check_agent_availability(agent2, dt4_start, dt4_end) is False
+
+
+def test_schedule_appointment_db_error(client, seed_users, seed_units):
+    """Test rollback when db error occurs during appointment scheduling."""
+    client.post('/login', data={'username': 'tenant_test', 'password': 'password123'})
+    with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+        data = {
+            'agent_id': seed_users['agent'].user_id,
+            'unit_id': seed_units[0].unit_id,
+            'date_time': '2099-01-06T10:00',
+            'end_time': '2099-01-06T11:00'
+        }
+        resp = client.post('/appointments/schedule', data=data, follow_redirects=True)
+        assert b'An error occurred while scheduling the appointment' in resp.data
+
+
+def test_cancel_appointment_db_error(client, seed_users, seed_units):
+    """Test rollback when db error occurs during appointment cancellation."""
+    tenant_u = seed_users['tenant']
+    agent_u = seed_users['agent']
+    with client.application.app_context():
+        a1 = Appointment(agent_id=agent_u.user_id, tenant_id=tenant_u.user_id, unit_id=seed_units[0].unit_id,
+                         date_time=datetime.now()+timedelta(days=1), end_time=datetime.now()+timedelta(days=1, hours=1))
+        db.session.add(a1)
+        db.session.commit()
+        a1_id = a1.appointment_id
+
+    client.post('/login', data={'username': 'tenant_test', 'password': 'password123'})
+    with patch.object(db.session, 'commit', side_effect=Exception('DB error')):
+        resp = client.post(f'/appointments/{a1_id}/cancel', follow_redirects=True)
+        assert b'An error occurred while cancelling the appointment' in resp.data
