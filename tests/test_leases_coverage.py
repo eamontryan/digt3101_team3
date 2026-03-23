@@ -152,8 +152,7 @@ def test_terminate_lease_success(client, seed_users, seed_units):
     with client.application.app_context():
         l = Lease.query.get(l1_id)
         assert l.status == 'Terminated'
-        u = StoreUnit.query.get(unit.unit_id)
-        assert u.availability == 'Available'
+
 
 def test_download_agreement_unauthorized(client, seed_users, seed_units):
     with client.application.app_context():

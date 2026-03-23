@@ -61,3 +61,37 @@ def test_tenant_cannot_add_store_unit(client, app, seed_users):
         }, follow_redirects=False)
 
         assert response.status_code == 403
+
+def test_admin_can_edit_store_unit(client, app, seed_users):
+    """Admin can edit an existing store unit."""
+    with app.app_context():
+        mall = Mall(name='Edit Mall', location='500 Edit St')
+        db.session.add(mall)
+        db.session.commit()
+        
+        unit = StoreUnit(
+            mall_id=mall.mall_id,
+            location='Floor 1',
+            size=100.0,
+            rental_rate=1000.0,
+            classification_tier='Standard',
+            business_purpose='Retail',
+            availability='Available'
+        )
+        db.session.add(unit)
+        db.session.commit()
+        unit_id = unit.unit_id
+
+        login_as_admin(client)
+        response = client.post(f'/units/{unit_id}/edit', data={
+            'mall_id': mall.mall_id,
+            'location': 'Floor 2 Updated',
+            'size': '150.0',
+            'rental_rate': '1500.0',
+            'classification_tier': 'Premium',
+            'business_purpose': 'Food',
+            'availability': 'Occupied',
+            'contact_info': 'test@edit.com'
+        }, follow_redirects=True)
+
+        assert response.status_code == 200

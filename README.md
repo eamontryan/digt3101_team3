@@ -1,11 +1,11 @@
 # Real Estate Management System (REMS) 🏢
 
 > **Course:** YU-DIGT Software Engineering  
-> **Deliverable:** 2 - System Architecture (SDD)   
-> **Date:** Feburary 1, 2026
+> **Deliverable:** 3 - Implementation and Testing
+> **Date:** March 22, 2026
 
 ## 📖 Project Overview
-The **Real Estate Management System (REMS)** is a comprehensive, Java-based software solution designed to automate commercial property management for large-scale mall developments.
+The **Real Estate Management System (REMS)** is a comprehensive, web-based software solution designed to automate commercial property management for large-scale mall developments.
 
 Large real estate companies currently face inefficiencies due to fragmented tools and manual processes, resulting in double-booked appointments and billing errors. REMS solves this by centralizing workflows—from leasing and billing to maintenance—into a unified platform.
 
@@ -35,9 +35,10 @@ REMS is designed with the following core functional modules:
 ## 🛠️ Technology Stack
 Based on the project specifications:
 
-* **Language:** Java
-* **Database:** Relational Database (MySQL or PostgreSQL)
-* **Testing:** JUnit
+* **Language:** Python
+* **Framework:** Flask
+* **Database:** MySQL
+* **Testing:** Pytest
 * **Architecture:** Layered or MVC (Model-View-Controller)
 * **Frontend:** Mobile-friendly & Responsive Interface
 
@@ -48,16 +49,16 @@ The project follows an Agile development cycle divided into 5 Sprints.
 | :--- | :--- | :--- | :--- |
 | **Phase 1** | **SRS & Project Plan** | Nov 23, 2025 | ✅ Completed |
 | **Phase 2** | **System Architecture (SDD)** | Feb 01, 2026 | ✅ Completed |
-| **Phase 3** | **Core Implementation** | Mar 22, 2026 | 🚧 In Progress |
-| **Phase 4** | **Testing & QA** | Mar 22, 2026 | 🚧 In Progress |
+| **Phase 3** | **Core Implementation** | Mar 22, 2026 | ✅ Completed |
+| **Phase 4** | **Testing & QA** | Mar 22, 2026 | ✅ Completed |
 | **Phase 5** | **Enhancements** | Summer 2026 | 📅 Planned |
 
 ## 📂 Repository Structure
 This repository contains the documentation and source code for REMS.
 
 - `docs/` - Contains the SRS, SDD, and Project Reports.
-- `src/` - (Future) Java source code.
-- `tests/` - (Future) JUnit test suites.
+- `src/` - Python Flask application source code.
+- `tests/` - Pytest test suites.
 - `assets/` - Diagrams, mockups, and UI assets.
 
 ## 👥 Team 3
