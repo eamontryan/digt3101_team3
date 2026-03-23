@@ -130,25 +130,29 @@ def pay(invoice_id):
     invoice = Invoice.query.get_or_404(invoice_id)
 
     if request.method == 'POST':
-        amount = Decimal(request.form['amount'])
-        payment = Payment(
-            invoice_id=invoice_id,
-            amount=amount,
-            payment_date=date.today(),
-            due_date=invoice.due_date,
-            status='Completed'
-        )
-        db.session.add(payment)
+        try:
+            amount = Decimal(request.form['amount'])
+            payment = Payment(
+                invoice_id=invoice_id,
+                amount=amount,
+                payment_date=date.today(),
+                due_date=invoice.due_date,
+                status='Completed'
+            )
+            db.session.add(payment)
 
-        # Update invoice status
-        total_paid = sum(p.amount for p in invoice.payments) + amount
-        if total_paid >= invoice.total_amount:
-            invoice.status = 'Paid'
-        else:
-            invoice.status = 'Partially Paid'
+            # Update invoice status
+            total_paid = sum(p.amount for p in invoice.payments) + amount
+            if total_paid >= invoice.total_amount:
+                invoice.status = 'Paid'
+            else:
+                invoice.status = 'Partially Paid'
 
-        db.session.commit()
-        flash('Payment recorded successfully.', 'success')
+            db.session.commit()
+            flash('Payment recorded successfully.', 'success')
+        except Exception:
+            db.session.rollback()
+            flash('An error occurred while processing the payment.', 'danger')
         return redirect(url_for('billing.invoices'))
 
     return render_template('billing/payment.html', invoice=invoice)

@@ -64,11 +64,15 @@ def register():
             password=hashed_pw,
             role='Tenant'
         )
-        db.session.add(user)
-        db.session.commit()
-
-        flash('Registration successful! Please log in.', 'success')
-        return redirect(url_for('auth.login'))
+        try:
+            db.session.add(user)
+            db.session.commit()
+            flash('Registration successful! Please log in.', 'success')
+            return redirect(url_for('auth.login'))
+        except Exception:
+            db.session.rollback()
+            flash('An error occurred during registration. Please try again.', 'danger')
+            return redirect(url_for('auth.register'))
 
     return render_template('auth/register.html')
 

@@ -23,7 +23,11 @@ def sign_lease(lease, user, signature_token):
     elif lease.tenant_signature or lease.agent_signature:
         lease.signature_status = 'Partially Signed'
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
 
 
 def generate_lease_pdf(lease):
@@ -162,4 +166,8 @@ def process_lease_renewals():
             related_id=lease.lease_id
         )
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise

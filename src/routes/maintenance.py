@@ -52,33 +52,37 @@ def list_requests():
 @role_required('Tenant')
 def submit():
     if request.method == 'POST':
-        maint_request = MaintenanceRequest(
-            lease_id=int(request.form['lease_id']),
-            category=request.form['category'],
-            description=request.form.get('description'),
-            priority=request.form.get('priority', 'Medium')
-        )
-        db.session.add(maint_request)
-        db.session.commit()
+        try:
+            maint_request = MaintenanceRequest(
+                lease_id=int(request.form['lease_id']),
+                category=request.form['category'],
+                description=request.form.get('description'),
+                priority=request.form.get('priority', 'Medium')
+            )
+            db.session.add(maint_request)
+            db.session.commit()
 
-        # Auto-escalate urgent requests: notify all admins (and Dev users)
-        if maint_request.priority == 'Urgent':
-            from models.user import User
-            admins = User.query.filter(
-                User.role.in_(['Admin', 'Dev']),
-                User.status == 'Active'
-            ).all()
-            for admin in admins:
-                create_notification(
-                    recipient_id=admin.user_id,
-                    notif_type='Maintenance Update',
-                    title='Urgent Maintenance Request',
-                    message=f'Urgent {maint_request.category} request submitted by {current_user.name} for {maint_request.lease.unit.location}. Immediate attention required.',
-                    related_entity='maintenance_request',
-                    related_id=maint_request.request_id
-                )
+            # Auto-escalate urgent requests: notify all admins (and Dev users)
+            if maint_request.priority == 'Urgent':
+                from models.user import User
+                admins = User.query.filter(
+                    User.role.in_(['Admin', 'Dev']),
+                    User.status == 'Active'
+                ).all()
+                for admin in admins:
+                    create_notification(
+                        recipient_id=admin.user_id,
+                        notif_type='Maintenance Update',
+                        title='Urgent Maintenance Request',
+                        message=f'Urgent {maint_request.category} request submitted by {current_user.name} for {maint_request.lease.unit.location}. Immediate attention required.',
+                        related_entity='maintenance_request',
+                        related_id=maint_request.request_id
+                    )
 
-        flash('Maintenance request submitted.', 'success')
+            flash('Maintenance request submitted.', 'success')
+        except Exception:
+            db.session.rollback()
+            flash('An error occurred while submitting the maintenance request.', 'danger')
         return redirect(url_for('maintenance.list_requests'))
 
     leases = Lease.query.filter_by(tenant_id=current_user.user_id, status='Active').order_by(Lease.start_date.desc()).all()
@@ -125,20 +129,24 @@ def update_status(request_id):
             maint_request.charge_amount = None
         status_for_notice = new_status
 
-    db.session.commit()
+    try:
+        db.session.commit()
 
-    if maint_request.invoice_id and maint_request.invoice:
-        recalculate_invoice_total(maint_request.invoice)
+        if maint_request.invoice_id and maint_request.invoice:
+            recalculate_invoice_total(maint_request.invoice)
 
-    lease = Lease.query.get(maint_request.lease_id)
-    create_notification(
-        recipient_id=lease.tenant_id,
-        notif_type='Maintenance Update',
-        title=f'Maintenance {status_for_notice}',
-        message=f'Your {maint_request.category} maintenance request is now: {status_for_notice}.',
-        related_entity='maintenance_request',
-        related_id=maint_request.request_id
-    )
+        lease = Lease.query.get(maint_request.lease_id)
+        create_notification(
+            recipient_id=lease.tenant_id,
+            notif_type='Maintenance Update',
+            title=f'Maintenance {status_for_notice}',
+            message=f'Your {maint_request.category} maintenance request is now: {status_for_notice}.',
+            related_entity='maintenance_request',
+            related_id=maint_request.request_id
+        )
 
-    flash('Maintenance request updated.', 'success')
+        flash('Maintenance request updated.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred while updating the maintenance request.', 'danger')
     return redirect(url_for('maintenance.list_requests'))

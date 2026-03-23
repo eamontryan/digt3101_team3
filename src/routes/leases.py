@@ -35,24 +35,29 @@ def detail(lease_id):
 @role_required('Admin', 'LeasingAgent')
 def create():
     if request.method == 'POST':
-        lease = Lease(
-            tenant_id=int(request.form['tenant_id']),
-            unit_id=int(request.form['unit_id']),
-            start_date=datetime.strptime(request.form['start_date'], '%Y-%m-%d').date(),
-            end_date=datetime.strptime(request.form['end_date'], '%Y-%m-%d').date(),
-            payment_cycle=request.form['payment_cycle'],
-            auto_renew=bool(request.form.get('auto_renew')),
-            renewal_rate_increase=float(request.form['renewal_rate_increase']) if request.form.get('renewal_rate_increase') else None
-        )
-        db.session.add(lease)
+        try:
+            lease = Lease(
+                tenant_id=int(request.form['tenant_id']),
+                unit_id=int(request.form['unit_id']),
+                start_date=datetime.strptime(request.form['start_date'], '%Y-%m-%d').date(),
+                end_date=datetime.strptime(request.form['end_date'], '%Y-%m-%d').date(),
+                payment_cycle=request.form['payment_cycle'],
+                auto_renew=bool(request.form.get('auto_renew')),
+                renewal_rate_increase=float(request.form['renewal_rate_increase']) if request.form.get('renewal_rate_increase') else None
+            )
+            db.session.add(lease)
 
-        # Mark unit as occupied
-        unit = StoreUnit.query.get(int(request.form['unit_id']))
-        unit.availability = 'Occupied'
+            # Mark unit as occupied
+            unit = StoreUnit.query.get(int(request.form['unit_id']))
+            unit.availability = 'Occupied'
 
-        db.session.commit()
-        flash('Lease created successfully.', 'success')
-        return redirect(url_for('leases.detail', lease_id=lease.lease_id))
+            db.session.commit()
+            flash('Lease created successfully.', 'success')
+            return redirect(url_for('leases.detail', lease_id=lease.lease_id))
+        except Exception:
+            db.session.rollback()
+            flash('An error occurred while creating the lease.', 'danger')
+            return redirect(url_for('leases.create'))
 
     tenants = User.query.filter(User.role.in_(['Tenant', 'Dev']), User.status == 'Active').all()
     units = StoreUnit.query.filter_by(availability='Available').all()
@@ -103,29 +108,33 @@ def terminate(lease_id):
         flash('Only active or pending leases can be terminated.', 'warning')
         return redirect(url_for('leases.detail', lease_id=lease_id))
 
-    lease.status = 'Terminated'
+    try:
+        lease.status = 'Terminated'
 
-    # Mark unit as available again
-    unit = StoreUnit.query.get(lease.unit_id)
-    # Only set Available if no other active lease exists on this unit
-    other_active = Lease.query.filter(
-        Lease.unit_id == lease.unit_id,
-        Lease.lease_id != lease.lease_id,
-        Lease.status == 'Active'
-    ).count()
-    if other_active == 0:
-        unit.availability = 'Available'
+        # Mark unit as available again
+        unit = StoreUnit.query.get(lease.unit_id)
+        # Only set Available if no other active lease exists on this unit
+        other_active = Lease.query.filter(
+            Lease.unit_id == lease.unit_id,
+            Lease.lease_id != lease.lease_id,
+            Lease.status == 'Active'
+        ).count()
+        if other_active == 0:
+            unit.availability = 'Available'
 
-    db.session.commit()
+        db.session.commit()
 
-    create_notification(
-        recipient_id=lease.tenant_id,
-        notif_type='General',
-        title='Lease Terminated',
-        message=f'Your lease for {lease.unit.location} has been terminated.',
-        related_entity='lease',
-        related_id=lease.lease_id
-    )
+        create_notification(
+            recipient_id=lease.tenant_id,
+            notif_type='General',
+            title='Lease Terminated',
+            message=f'Your lease for {lease.unit.location} has been terminated.',
+            related_entity='lease',
+            related_id=lease.lease_id
+        )
 
-    flash('Lease terminated successfully.', 'success')
+        flash('Lease terminated successfully.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred while terminating the lease.', 'danger')
     return redirect(url_for('leases.detail', lease_id=lease_id))

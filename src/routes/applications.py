@@ -39,18 +39,69 @@ def submit():
     if request.method == 'POST':
         unit_id = int(request.form['unit_id'])
 
-        application = RentalApplication(
-            tenant_id=current_user.user_id,
-            unit_id=unit_id,
-            submission_date=date.today()
-        )
-        db.session.add(application)
-        db.session.commit()
+        try:
+            application = RentalApplication(
+                tenant_id=current_user.user_id,
+                unit_id=unit_id,
+                submission_date=date.today()
+            )
+            db.session.add(application)
+            db.session.commit()
 
-        # Handle file uploads
+            # Handle file uploads
+            files = request.files.getlist('documents')
+            for file in files:
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    upload_dir = os.path.join(
+                        current_app.config['UPLOAD_FOLDER'],
+                        'applications',
+                        str(application.application_id)
+                    )
+                    os.makedirs(upload_dir, exist_ok=True)
+                    filepath = os.path.join(upload_dir, filename)
+                    file.save(filepath)
+
+                    doc = ApplicationDocument(
+                        application_id=application.application_id,
+                        file_name=filename,
+                        file_path=filepath,
+                        file_type=filename.rsplit('.', 1)[1].lower(),
+                        file_size=os.path.getsize(filepath)
+                    )
+                    db.session.add(doc)
+
+            db.session.commit()
+            flash('Application submitted successfully.', 'success')
+        except Exception:
+            db.session.rollback()
+            flash('An error occurred while submitting the application.', 'danger')
+        return redirect(url_for('applications.list_applications'))
+
+    units = StoreUnit.query.filter_by(availability='Available').all()
+    return render_template('applications/submit.html', units=units)
+
+
+@applications_bp.route('/<int:app_id>/update', methods=['POST'])
+@login_required
+@role_required('Tenant', 'Admin', 'LeasingAgent')
+def update(app_id):
+    application = RentalApplication.query.get_or_404(app_id)
+    if get_active_role() == 'Tenant' and application.tenant_id != current_user.user_id:
+        flash('Unauthorized.', 'danger')
+        return redirect(url_for('applications.list_applications'))
+    if application.status != 'Pending':
+        flash('Only pending applications can be updated.', 'warning')
+        return redirect(url_for('applications.list_applications'))
+
+    try:
+        application.unit_id = int(request.form['unit_id'])
+        application.submission_date = date.today()
+
+        # Handle additional file uploads
         files = request.files.getlist('documents')
         for file in files:
-            if file and allowed_file(file.filename):
+            if file and file.filename and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 upload_dir = os.path.join(
                     current_app.config['UPLOAD_FOLDER'],
@@ -71,53 +122,10 @@ def submit():
                 db.session.add(doc)
 
         db.session.commit()
-        flash('Application submitted successfully.', 'success')
-        return redirect(url_for('applications.list_applications'))
-
-    units = StoreUnit.query.filter_by(availability='Available').all()
-    return render_template('applications/submit.html', units=units)
-
-
-@applications_bp.route('/<int:app_id>/update', methods=['POST'])
-@login_required
-@role_required('Tenant', 'Admin', 'LeasingAgent')
-def update(app_id):
-    application = RentalApplication.query.get_or_404(app_id)
-    if get_active_role() == 'Tenant' and application.tenant_id != current_user.user_id:
-        flash('Unauthorized.', 'danger')
-        return redirect(url_for('applications.list_applications'))
-    if application.status != 'Pending':
-        flash('Only pending applications can be updated.', 'warning')
-        return redirect(url_for('applications.list_applications'))
-
-    application.unit_id = int(request.form['unit_id'])
-    application.submission_date = date.today()
-
-    # Handle additional file uploads
-    files = request.files.getlist('documents')
-    for file in files:
-        if file and file.filename and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            upload_dir = os.path.join(
-                current_app.config['UPLOAD_FOLDER'],
-                'applications',
-                str(application.application_id)
-            )
-            os.makedirs(upload_dir, exist_ok=True)
-            filepath = os.path.join(upload_dir, filename)
-            file.save(filepath)
-
-            doc = ApplicationDocument(
-                application_id=application.application_id,
-                file_name=filename,
-                file_path=filepath,
-                file_type=filename.rsplit('.', 1)[1].lower(),
-                file_size=os.path.getsize(filepath)
-            )
-            db.session.add(doc)
-
-    db.session.commit()
-    flash('Application updated successfully.', 'success')
+        flash('Application updated successfully.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred while updating the application.', 'danger')
     return redirect(url_for('applications.list_applications'))
 
 
@@ -126,20 +134,24 @@ def update(app_id):
 @role_required('Admin', 'LeasingAgent')
 def approve(app_id):
     application = RentalApplication.query.get_or_404(app_id)
-    application.status = 'Approved'
-    db.session.commit()
+    try:
+        application.status = 'Approved'
+        db.session.commit()
 
-    unit = StoreUnit.query.get(application.unit_id)
-    create_notification(
-        recipient_id=application.tenant_id,
-        notif_type='General',
-        title='Application Approved',
-        message=f'Your rental application for {unit.location} has been approved.',
-        related_entity='rental_application',
-        related_id=application.application_id
-    )
+        unit = StoreUnit.query.get(application.unit_id)
+        create_notification(
+            recipient_id=application.tenant_id,
+            notif_type='General',
+            title='Application Approved',
+            message=f'Your rental application for {unit.location} has been approved.',
+            related_entity='rental_application',
+            related_id=application.application_id
+        )
 
-    flash('Application approved.', 'success')
+        flash('Application approved.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred while approving the application.', 'danger')
     return redirect(url_for('applications.list_applications'))
 
 
@@ -148,20 +160,24 @@ def approve(app_id):
 @role_required('Admin', 'LeasingAgent')
 def reject(app_id):
     application = RentalApplication.query.get_or_404(app_id)
-    application.status = 'Rejected'
-    db.session.commit()
+    try:
+        application.status = 'Rejected'
+        db.session.commit()
 
-    unit = StoreUnit.query.get(application.unit_id)
-    create_notification(
-        recipient_id=application.tenant_id,
-        notif_type='General',
-        title='Application Rejected',
-        message=f'Your rental application for {unit.location} has been rejected.',
-        related_entity='rental_application',
-        related_id=application.application_id
-    )
+        unit = StoreUnit.query.get(application.unit_id)
+        create_notification(
+            recipient_id=application.tenant_id,
+            notif_type='General',
+            title='Application Rejected',
+            message=f'Your rental application for {unit.location} has been rejected.',
+            related_entity='rental_application',
+            related_id=application.application_id
+        )
 
-    flash('Application rejected.', 'info')
+        flash('Application rejected.', 'info')
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred while rejecting the application.', 'danger')
     return redirect(url_for('applications.list_applications'))
 @applications_bp.route('/<int:app_id>/document/<int:doc_id>')
 @login_required

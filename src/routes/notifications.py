@@ -23,9 +23,13 @@ def dismiss(notification_id):
     if notification.recipient_id != current_user.user_id:
         flash('Unauthorized.', 'danger')
         return redirect(url_for('notifications.list_notifications'))
-    db.session.delete(notification)
-    db.session.commit()
-    flash('Notification dismissed.', 'info')
+    try:
+        db.session.delete(notification)
+        db.session.commit()
+        flash('Notification dismissed.', 'info')
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred while dismissing the notification.', 'danger')
     return redirect(url_for('notifications.list_notifications'))
 
 

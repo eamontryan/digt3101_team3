@@ -73,8 +73,11 @@ appointments_bp = Blueprint('appointments', __name__, url_prefix='/appointments'
 @appointments_bp.before_app_request
 def cleanup_past_appointments():
     """Remove appointments whose end_time has passed."""
-    Appointment.query.filter(Appointment.end_time < datetime.now()).delete()
-    db.session.commit()
+    try:
+        Appointment.query.filter(Appointment.end_time < datetime.now()).delete()
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 
 @appointments_bp.route('/')
@@ -141,27 +144,31 @@ def schedule():
             flash('This unit already has a viewing scheduled during this time.', 'danger')
             return redirect(url_for('appointments.schedule'))
 
-        appointment = Appointment(
-            agent_id=agent_id,
-            tenant_id=tenant_id,
-            unit_id=unit_id,
-            date_time=date_time,
-            end_time=end_time
-        )
-        db.session.add(appointment)
-        db.session.commit()
+        try:
+            appointment = Appointment(
+                agent_id=agent_id,
+                tenant_id=tenant_id,
+                unit_id=unit_id,
+                date_time=date_time,
+                end_time=end_time
+            )
+            db.session.add(appointment)
+            db.session.commit()
 
-        unit = StoreUnit.query.get(unit_id)
-        create_notification(
-            recipient_id=tenant_id,
-            notif_type='Appointment Confirmation',
-            title='Appointment Confirmed',
-            message=f'Your viewing appointment for {unit.location} on {date_time.strftime("%b %d at %I:%M %p")} has been confirmed.',
-            related_entity='appointment',
-            related_id=appointment.appointment_id
-        )
+            unit = StoreUnit.query.get(unit_id)
+            create_notification(
+                recipient_id=tenant_id,
+                notif_type='Appointment Confirmation',
+                title='Appointment Confirmed',
+                message=f'Your viewing appointment for {unit.location} on {date_time.strftime("%b %d at %I:%M %p")} has been confirmed.',
+                related_entity='appointment',
+                related_id=appointment.appointment_id
+            )
 
-        flash('Appointment scheduled successfully.', 'success')
+            flash('Appointment scheduled successfully.', 'success')
+        except Exception:
+            db.session.rollback()
+            flash('An error occurred while scheduling the appointment.', 'danger')
         return redirect(url_for('appointments.list_appointments'))
 
     agents = User.query.filter(
@@ -184,31 +191,35 @@ def schedule():
 @login_required
 def cancel(appointment_id):
     appointment = Appointment.query.get_or_404(appointment_id)
-    appointment.status = 'Cancelled'
-    db.session.commit()
+    try:
+        appointment.status = 'Cancelled'
+        db.session.commit()
 
-    # Notify tenant and agent about the cancellation
-    unit = StoreUnit.query.get(appointment.unit_id)
-    agent = User.query.get(appointment.agent_id)
-    tenant = User.query.get(appointment.tenant_id)
-    appt_time = appointment.date_time.strftime("%b %d at %I:%M %p")
+        # Notify tenant and agent about the cancellation
+        unit = StoreUnit.query.get(appointment.unit_id)
+        agent = User.query.get(appointment.agent_id)
+        tenant = User.query.get(appointment.tenant_id)
+        appt_time = appointment.date_time.strftime("%b %d at %I:%M %p")
 
-    create_notification(
-        recipient_id=appointment.tenant_id,
-        notif_type='Appointment Update',
-        title='Appointment Cancelled',
-        message=f'Your viewing appointment for {unit.location} on {appt_time} has been cancelled.',
-        related_entity='appointment',
-        related_id=appointment.appointment_id
-    )
-    create_notification(
-        recipient_id=appointment.agent_id,
-        notif_type='Appointment Update',
-        title='Appointment Cancelled',
-        message=f'The viewing appointment with {tenant.name} for {unit.location} on {appt_time} has been cancelled.',
-        related_entity='appointment',
-        related_id=appointment.appointment_id
-    )
+        create_notification(
+            recipient_id=appointment.tenant_id,
+            notif_type='Appointment Update',
+            title='Appointment Cancelled',
+            message=f'Your viewing appointment for {unit.location} on {appt_time} has been cancelled.',
+            related_entity='appointment',
+            related_id=appointment.appointment_id
+        )
+        create_notification(
+            recipient_id=appointment.agent_id,
+            notif_type='Appointment Update',
+            title='Appointment Cancelled',
+            message=f'The viewing appointment with {tenant.name} for {unit.location} on {appt_time} has been cancelled.',
+            related_entity='appointment',
+            related_id=appointment.appointment_id
+        )
 
-    flash('Appointment cancelled.', 'info')
+        flash('Appointment cancelled.', 'info')
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred while cancelling the appointment.', 'danger')
     return redirect(url_for('appointments.list_appointments'))

@@ -12,6 +12,10 @@ def create_notification(recipient_id, notif_type, title, message,
         related_entity=related_entity,
         related_id=related_id
     )
-    db.session.add(notification)
-    db.session.commit()
-    return notification
+    try:
+        db.session.add(notification)
+        db.session.commit()
+        return notification
+    except Exception:
+        db.session.rollback()
+        raise

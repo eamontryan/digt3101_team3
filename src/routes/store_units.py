@@ -53,20 +53,24 @@ def detail(unit_id):
 def create():
     malls = Mall.query.all()
     if request.method == 'POST':
-        unit = StoreUnit(
-            mall_id=int(request.form['mall_id']),
-            location=request.form['location'],
-            size=float(request.form['size']),
-            rental_rate=float(request.form['rental_rate']),
-            classification_tier=request.form.get('classification_tier'),
-            business_purpose=request.form.get('business_purpose'),
-            availability=request.form.get('availability', 'Available'),
-            contact_info=request.form.get('contact_info')
-        )
-        db.session.add(unit)
-        db.session.commit()
-        flash('Store unit created successfully.', 'success')
-        return redirect(url_for('store_units.detail', unit_id=unit.unit_id))
+        try:
+            unit = StoreUnit(
+                mall_id=int(request.form['mall_id']),
+                location=request.form['location'],
+                size=float(request.form['size']),
+                rental_rate=float(request.form['rental_rate']),
+                classification_tier=request.form.get('classification_tier'),
+                business_purpose=request.form.get('business_purpose'),
+                availability=request.form.get('availability', 'Available'),
+                contact_info=request.form.get('contact_info')
+            )
+            db.session.add(unit)
+            db.session.commit()
+            flash('Store unit created successfully.', 'success')
+            return redirect(url_for('store_units.detail', unit_id=unit.unit_id))
+        except Exception:
+            db.session.rollback()
+            flash('An error occurred while creating the store unit.', 'danger')
 
     return render_template('store_units/form.html', malls=malls, unit=None)
 
@@ -79,17 +83,21 @@ def edit(unit_id):
     malls = Mall.query.all()
 
     if request.method == 'POST':
-        unit.mall_id = int(request.form['mall_id'])
-        unit.location = request.form['location']
-        unit.size = float(request.form['size'])
-        unit.rental_rate = float(request.form['rental_rate'])
-        unit.classification_tier = request.form.get('classification_tier')
-        unit.business_purpose = request.form.get('business_purpose')
-        unit.availability = request.form['availability']
-        unit.contact_info = request.form.get('contact_info')
-        db.session.commit()
-        flash('Store unit updated successfully.', 'success')
-        return redirect(url_for('store_units.detail', unit_id=unit.unit_id))
+        try:
+            unit.mall_id = int(request.form['mall_id'])
+            unit.location = request.form['location']
+            unit.size = float(request.form['size'])
+            unit.rental_rate = float(request.form['rental_rate'])
+            unit.classification_tier = request.form.get('classification_tier')
+            unit.business_purpose = request.form.get('business_purpose')
+            unit.availability = request.form['availability']
+            unit.contact_info = request.form.get('contact_info')
+            db.session.commit()
+            flash('Store unit updated successfully.', 'success')
+            return redirect(url_for('store_units.detail', unit_id=unit.unit_id))
+        except Exception:
+            db.session.rollback()
+            flash('An error occurred while updating the store unit.', 'danger')
 
     return render_template('store_units/form.html', malls=malls, unit=unit)
 
@@ -108,7 +116,11 @@ def delete(unit_id):
         flash('Cannot delete unit: it has active or pending leases. Terminate them first.', 'danger')
         return redirect(url_for('store_units.detail', unit_id=unit_id))
 
-    db.session.delete(unit)
-    db.session.commit()
-    flash('Store unit deleted successfully.', 'success')
+    try:
+        db.session.delete(unit)
+        db.session.commit()
+        flash('Store unit deleted successfully.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('An error occurred while deleting the store unit.', 'danger')
     return redirect(url_for('store_units.list_units'))

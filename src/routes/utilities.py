@@ -25,24 +25,28 @@ def list_utilities():
 def add():
     if request.method == 'POST':
         invoice_id = request.form.get('invoice_id') or None
-        usage = UtilityUsage(
-            unit_id=int(request.form['unit_id']),
-            invoice_id=int(invoice_id) if invoice_id else None,
-            type=request.form['type'],
-            usage_amount=float(request.form['usage_amount']),
-            billing_month=datetime.strptime(request.form['billing_month'], '%Y-%m-%d').date(),
-            amount=float(request.form['amount'])
-        )
-        db.session.add(usage)
-        db.session.commit()
+        try:
+            usage = UtilityUsage(
+                unit_id=int(request.form['unit_id']),
+                invoice_id=int(invoice_id) if invoice_id else None,
+                type=request.form['type'],
+                usage_amount=float(request.form['usage_amount']),
+                billing_month=datetime.strptime(request.form['billing_month'], '%Y-%m-%d').date(),
+                amount=float(request.form['amount'])
+            )
+            db.session.add(usage)
+            db.session.commit()
 
-        # Recalculate invoice total if linked to an invoice
-        if usage.invoice_id:
-            invoice = Invoice.query.get(usage.invoice_id)
-            if invoice:
-                recalculate_invoice_total(invoice)
+            # Recalculate invoice total if linked to an invoice
+            if usage.invoice_id:
+                invoice = Invoice.query.get(usage.invoice_id)
+                if invoice:
+                    recalculate_invoice_total(invoice)
 
-        flash('Utility usage recorded.', 'success')
+            flash('Utility usage recorded.', 'success')
+        except Exception:
+            db.session.rollback()
+            flash('An error occurred while recording utility usage.', 'danger')
         return redirect(url_for('utilities.list_utilities'))
 
     units = StoreUnit.query.filter_by(availability='Occupied').all()

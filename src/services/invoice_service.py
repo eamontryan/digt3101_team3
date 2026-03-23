@@ -69,7 +69,11 @@ def generate_invoice(lease_id, issue_date=None, due_date=None):
     for req in misuse_requests:
         req.invoice_id = invoice.invoice_id
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
     return invoice
 
 
@@ -90,7 +94,11 @@ def recalculate_invoice_total(invoice):
         Decimal('0')
     )
     invoice.total_amount = rent + utility_total + misuse_total
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
 
 
 def generate_all_due_invoices():
@@ -179,4 +187,8 @@ def check_overdue_invoices():
                 related_id=invoice.invoice_id
             )
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
